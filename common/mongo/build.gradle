@@ -1,0 +1,15 @@
+apply plugin: 'scala'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compile "org.apache.openwhisk:scala:${gradle.openwhisk.version}"
+}
+
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.additionalParameters = gradle.scala.compileFlags
+}

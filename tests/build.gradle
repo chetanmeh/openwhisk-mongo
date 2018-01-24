@@ -1,0 +1,16 @@
+apply plugin: 'scala'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compile "org.apache.openwhisk:tests:${gradle.openwhisk.version}:tests"
+    compile project(':common:mongo')
+}
+
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.additionalParameters = gradle.scala.compileFlags
+}
