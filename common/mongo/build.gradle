@@ -6,7 +6,8 @@ repositories {
 }
 
 dependencies {
-    compile "org.apache.openwhisk:scala:${gradle.openwhisk.version}"
+    compile "org.apache.openwhisk:openwhisk-common:${gradle.openwhisk.version}"
+    compile "org.mongodb.scala:mongo-scala-driver_2.11:2.1.0"
 }
 
 
