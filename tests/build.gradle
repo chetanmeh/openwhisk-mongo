@@ -7,6 +7,7 @@ repositories {
 
 dependencies {
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:tests"
+    compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:test-sources"
     compile project(':common:mongo')
 }
 
