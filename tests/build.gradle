@@ -1,3 +1,7 @@
+plugins {
+    id "org.scoverage" version "2.1.0"
+}
+
 apply plugin: 'scala'
 
 repositories {
@@ -9,9 +13,22 @@ dependencies {
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:tests"
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:test-sources"
     compile project(':common:mongo')
+    scoverage gradle.scoverage.deps
 }
-
 
 tasks.withType(ScalaCompile) {
     scalaCompileOptions.additionalParameters = gradle.scala.compileFlags
+}
+
+afterEvaluate {
+    def mainProject = project(':common:mongo')
+    testScoverage {
+        classpath = mainProject.sourceSets.scoverage.runtimeClasspath + sourceSets.test.runtimeClasspath
+    }
+
+    scoverage {
+        sources = mainProject.extensions.scoverage.sources
+        dataDir = mainProject.extensions.scoverage.dataDir
+        reportDir = mainProject.extensions.scoverage.reportDir
+    }
 }
