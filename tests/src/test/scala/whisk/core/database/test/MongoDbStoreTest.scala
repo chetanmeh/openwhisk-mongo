@@ -102,6 +102,16 @@ class MongoDbStoreTest
     }
   }
 
+  it should "throw DocumentConflictException if document with same id is inserted twice" in {
+    implicit val tid: TransactionId = transid()
+    val auth = newAuth()
+    val doc = put(store, auth)
+
+    intercept[DocumentConflictException] {
+      put(store, auth)
+    }
+  }
+
   behavior of "MongoDbStore delete"
 
   it should "deletes existing document" in {

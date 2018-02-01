@@ -27,6 +27,7 @@ import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.mongodb.DuplicateKeyException
+import com.mongodb.ErrorCategory
 import com.mongodb.client.model.ReturnDocument
 import org.mongodb.scala.MongoClient
 import org.mongodb.scala.MongoCollection
@@ -107,8 +108,9 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
           .insertOne(doc)
           .head()
           .transform(_ => DocInfo(DocId(id), DocRevision(1.toString)), {
-            case _: DuplicateKeyException => DocumentConflictException("conflict on 'put'")
-            case e                        => e
+            case _: DuplicateKeyException                             => DocumentConflictException("conflict on 'put'")
+            case e: MongoWriteException if isDuplicateKeyException(e) => DocumentConflictException("conflict on 'put'")
+            case e                                                    => e
           })
       case _ =>
         val doc = toDocument(mongoJsonDoc.fields(_data).asJsObject)
@@ -287,6 +289,10 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
       case x                         => onFailure(x)
     })
     f
+  }
+
+  private def isDuplicateKeyException(e: MongoWriteException) = {
+    ErrorCategory.fromErrorCode(e.getError.getCode) eq ErrorCategory.DUPLICATE_KEY
   }
 
 }
