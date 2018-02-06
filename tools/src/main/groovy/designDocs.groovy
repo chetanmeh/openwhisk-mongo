@@ -22,7 +22,7 @@ import groovy.json.JsonSlurper
 
 def owHomePath = args ? args[0] : System.getenv("OPENWHISK_HOME")
 assert owHomePath : "OpenWhisk home cannot be determined from environment (via 'OPENWHISK_HOME') " +
-        "or script arguments '-Popenwhisk.home='"
+        "or script arguments '-Popenwhisk.home``='"
 
 File owDir = new File(owHomePath)
 

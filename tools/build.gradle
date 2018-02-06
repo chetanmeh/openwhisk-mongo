@@ -24,15 +24,10 @@ dependencies {
 }
 
 task runScript(type: JavaExec) {
-    description 'Run Groovy script'
-
+    description 'Generate design docs js file'
     main = 'designDocs'
-
-    // Set classpath for running the Groovy script.
     classpath = sourceSets.main.runtimeClasspath
-
     if (project.hasProperty('openwhisk.home')) {
-        // Pass command-line argument to script.
         args project.getProperty('openwhisk.home')
     }
 }
