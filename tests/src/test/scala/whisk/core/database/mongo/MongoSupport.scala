@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package whisk.core.database.test
+package whisk.core.database.mongo
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Suite

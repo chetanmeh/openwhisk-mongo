@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package whisk.core.database.test
+package whisk.core.database.mongo
 
 import akka.stream.ActorMaterializer
 import common.StreamLogging
@@ -32,6 +32,7 @@ import whisk.common.TransactionId
 import whisk.core.WhiskConfig
 import whisk.core.database.NoDocumentException
 import whisk.core.database.DocumentConflictException
+import whisk.core.database.test.DbUtils
 import whisk.core.entity.WhiskAuthStore
 import whisk.core.entity.WhiskAuth
 import whisk.core.entity.AuthKey
