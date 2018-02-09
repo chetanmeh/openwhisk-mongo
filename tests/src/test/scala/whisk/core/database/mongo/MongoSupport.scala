@@ -19,16 +19,37 @@
 
 package whisk.core.database.mongo
 
+import org.mongodb.scala.MongoClient
+import org.mongodb.scala.Document
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Suite
+import pureconfig._
+import org.mongodb.scala.model.Filters._
+import spray.json._
+import spray.json.JsObject
 
-trait MongoSupport extends BeforeAndAfterAll {
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext
+import scala.language.postfixOps
+
+trait MongoSupport extends BeforeAndAfterAll with ArtifactStoreUtils {
   self: Suite =>
+
+  lazy val mongoConfig: MongoConfig = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
+  lazy val mongoClient = MongoClient(mongoConfig.uri)
 
   override protected def beforeAll(): Unit = {
     System.setProperty("whisk.mongo.uri", "mongodb://localhost:27017")
     System.setProperty("whisk.mongo.db", "ow_test")
 
     super.beforeAll()
+  }
+
+  override def get(id: String, dbName: String)(implicit ec: ExecutionContext): JsObject = {
+    val f = mongoClient.getDatabase(mongoConfig.db).getCollection[Document](dbName).find(equal("_id", id)).head()
+    Await.result(f.map { doc =>
+      doc.toJson().parseJson.asJsObject
+    }, 15 seconds)
   }
 }

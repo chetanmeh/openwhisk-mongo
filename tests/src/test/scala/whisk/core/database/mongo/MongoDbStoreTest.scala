@@ -19,21 +19,12 @@
 
 package whisk.core.database.mongo
 
-import akka.stream.ActorMaterializer
-import common.StreamLogging
-import common.WskActorSystem
 import org.junit.runner.RunWith
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FlatSpec
-import org.scalatest.Matchers
-import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
 import whisk.common.TransactionId
-import whisk.core.WhiskConfig
 import whisk.core.database.NoDocumentException
 import whisk.core.database.DocumentConflictException
-import whisk.core.database.test.DbUtils
-import whisk.core.entity.WhiskAuthStore
 import whisk.core.entity.WhiskAuth
 import whisk.core.entity.AuthKey
 import whisk.core.entity.EntityName
@@ -44,72 +35,48 @@ import whisk.core.entity.DocInfo
 import scala.concurrent.Await
 
 @RunWith(classOf[JUnitRunner])
-class MongoDbStoreTest
-    extends FlatSpec
-    with WskActorSystem
-    with StreamLogging
-    with BeforeAndAfterAll
-    with BeforeAndAfter
-    with DbUtils
-    with MongoSupport
-    with Matchers {
-
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
-
-  val config = new WhiskConfig(Map("db.whisk.auths" -> "auths"))
-  lazy val store = WhiskAuthStore.datastore(config)
-
-  override def afterAll(): Unit = {
-    println("Shutting down store connections")
-    store.shutdown()
-    super.afterAll()
-  }
-
-  after {
-    //TODO Remove this
-    println(logLines.mkString("\n"))
-  }
+class MongoDbStoreTest extends FlatSpec with ArtifactStoreHelper with MongoSupport {
 
   behavior of "MongoDbStore put"
 
   it should "put document and get a revision 1" in {
     implicit val tid: TransactionId = transid()
-    val doc = put(store, newAuth())
+    val doc = put(authStore, newAuth())
     doc.rev.rev shouldBe "1"
   }
 
   it should "put and update document" in {
     implicit val tid: TransactionId = transid()
     val auth = newAuth()
-    val doc = put(store, auth)
+    val doc = put(authStore, auth)
 
     val auth2 = getWhiskAuth(doc).copy(namespaces = Set(wskNS("foo1"))).revision[WhiskAuth](doc.rev)
-    val doc2 = put(store, auth2)
+    val doc2 = put(authStore, auth2)
     doc2.rev.rev shouldBe "2"
   }
 
   it should "throw DocumentConflictException when updated with old revision" in {
     implicit val tid: TransactionId = transid()
     val auth = newAuth()
-    val doc = put(store, auth)
+    val doc = put(authStore, auth)
 
     val auth2 = getWhiskAuth(doc).copy(namespaces = Set(wskNS("foo1"))).revision[WhiskAuth](doc.rev)
-    val doc2 = put(store, auth2)
+    val doc2 = put(authStore, auth2)
 
     //Updated with _rev set to older one
     val auth3 = getWhiskAuth(doc2).copy(namespaces = Set(wskNS("foo2"))).revision[WhiskAuth](doc.rev)
     intercept[DocumentConflictException] {
-      put(store, auth3)
+      put(authStore, auth3)
     }
   }
 
   it should "throw DocumentConflictException if document with same id is inserted twice" in {
     implicit val tid: TransactionId = transid()
     val auth = newAuth()
-    val doc = put(store, auth)
+    val doc = put(authStore, auth)
 
     intercept[DocumentConflictException] {
-      put(store, auth)
+      put(authStore, auth)
     }
   }
 
@@ -117,21 +84,21 @@ class MongoDbStoreTest
 
   it should "deletes existing document" in {
     implicit val tid: TransactionId = transid()
-    val doc = put(store, newAuth())
-    delete(store, doc) shouldBe true
+    val doc = put(authStore, newAuth())
+    delete(authStore, doc) shouldBe true
   }
 
   it should "throws IllegalArgumentException when deleting without revision" in {
     intercept[IllegalArgumentException] {
       implicit val tid: TransactionId = transid()
-      delete(store, DocInfo("doc-with-empty-revision"))
+      delete(authStore, DocInfo("doc-with-empty-revision"))
     }
   }
 
   it should "throws NoDocumentException when document does not exist" in {
     intercept[NoDocumentException] {
       implicit val tid: TransactionId = transid()
-      delete(store, DocInfo ! ("non-existing-doc", "42"))
+      delete(authStore, DocInfo ! ("non-existing-doc", "42"))
     }
   }
 
@@ -140,7 +107,7 @@ class MongoDbStoreTest
   it should "get existing entity matching id and rev" in {
     implicit val tid: TransactionId = transid()
     val auth = newAuth()
-    val doc = put(store, auth)
+    val doc = put(authStore, auth)
     val authFromGet = getWhiskAuth(doc)
     authFromGet shouldBe auth
     authFromGet.docinfo.rev shouldBe doc.rev
@@ -149,7 +116,7 @@ class MongoDbStoreTest
   it should "get existing entity matching id only" in {
     implicit val tid: TransactionId = transid()
     val auth = newAuth()
-    val doc = put(store, auth)
+    val doc = put(authStore, auth)
     val authFromGet = getWhiskAuth(doc)
     authFromGet shouldBe auth
   }
@@ -157,10 +124,10 @@ class MongoDbStoreTest
   it should "throws NoDocumentException when document revision does not match" in {
     implicit val tid: TransactionId = transid()
     val auth = newAuth()
-    val doc = put(store, auth)
+    val doc = put(authStore, auth)
 
     val auth2 = getWhiskAuth(doc).copy(namespaces = Set(wskNS("foo1"))).revision[WhiskAuth](doc.rev)
-    val doc2 = put(store, auth2)
+    val doc2 = put(authStore, auth2)
 
     intercept[NoDocumentException] {
       getWhiskAuth(doc)
@@ -178,7 +145,7 @@ class MongoDbStoreTest
   }
 
   private def getWhiskAuth(doc: DocInfo)(implicit transid: TransactionId) = {
-    Await.result(store.get[WhiskAuth](doc), dbOpTimeout)
+    Await.result(authStore.get[WhiskAuth](doc), dbOpTimeout)
   }
 
   private def newAuth() = {
