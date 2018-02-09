@@ -79,7 +79,7 @@ would compute such fields at time of creation itself and store them as a subdocu
 }
 ```
 
-Refer to GH-8 for further details
+Refer to [computed fields issues][9] for further details
 
 ### Indexes 
 
@@ -93,3 +93,4 @@ TBD - How CouchDB views are mapped to Mongo indexes
 [6]: http://guide.couchdb.org/draft/conflicts.html
 [7]: https://docs.mongodb.com/manual/reference/operator/update/inc/
 [8]: http://mongodb.github.io/mongo-scala-driver/
+[9]: https://github.com/chetanmeh/openwhisk-mongo/issues/8
