@@ -28,8 +28,11 @@ import whisk.core.database.ArtifactStoreProvider
 import whisk.core.database.ArtifactStore
 import whisk.core.database.DocumentSerializer
 import whisk.core.entity.DocumentReader
-
 import pureconfig._
+import whisk.core.entity.WhiskEntity
+import whisk.core.entity.WhiskActivation
+
+import scala.reflect.ClassTag
 
 case class MongoConfig(uri: String, db: String)
 
@@ -39,15 +42,23 @@ object ConfigKeys {
 
 object MongoDbStoreProvider extends ArtifactStoreProvider {
 
-  override def makeStore[D <: DocumentSerializer](config: WhiskConfig,
-                                                  name: WhiskConfig => String,
-                                                  useBatching: Boolean)(
+  override def makeStore[D <: DocumentSerializer: ClassTag](config: WhiskConfig,
+                                                            name: WhiskConfig => String,
+                                                            useBatching: Boolean)(
     implicit jsonFormat: RootJsonFormat[D],
     docReader: DocumentReader,
     actorSystem: ActorSystem,
     logging: Logging,
     materializer: ActorMaterializer): ArtifactStore[D] = {
     val mc = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
-    new MongoDbStore[D](mc, name(config), useBatching)
+    new MongoDbStore[D](mc, name(config), handler(implicitly[ClassTag[D]]), useBatching)
+  }
+
+  private def handler[D](entityType: ClassTag[D]): DocumentHandler = {
+    entityType.runtimeClass match {
+      case x if x == classOf[WhiskEntity]     => WhisksHandler
+      case x if x == classOf[WhiskActivation] => ActivationHandler
+      case _                                  => DefaultHandler
+    }
   }
 }

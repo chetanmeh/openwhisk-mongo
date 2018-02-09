@@ -66,6 +66,7 @@ import whisk.http.Messages
 
 class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfig,
                                                               collName: String,
+                                                              documentHandler: DocumentHandler,
                                                               useBatching: Boolean = false)(
   implicit system: ActorSystem,
   val logging: Logging,
@@ -85,6 +86,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
   private val _rev = "_rev"
   private val _data = "_data"
   private val _id = "_id"
+  private val _computed = "_computed"
 
   override protected[database] def put(d: DocumentAbstraction)(implicit transid: TransactionId): Future[DocInfo] = {
     val asJson = d.toDocumentRecord
@@ -228,6 +230,13 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
                                      descending: Boolean,
                                      reduce: Boolean,
                                      stale: StaleParameter)(implicit transid: TransactionId): Future[List[JsObject]] = {
+    require(!(reduce && includeDocs), "reduce and includeDocs cannot both be true")
+    require(!reduce, "Reduce scenario not supported") //TODO Investigate reduce
+
+    //If includeDocs then projection is not used
+    //endKey.length == startKey.length || endKey.length = startKey.length + 1
+    //endKey can be numeric or string == TOP
+
     Future.failed(new Exception()) //FIXME
   }
 
@@ -273,13 +282,17 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
    */
   private def toMongoJsonDoc(json: JsObject): JsObject = {
     val data = json.fields - _id - _rev
-    JsObject(_data -> JsObject(data), _id -> json.fields(_id))
+    val dataWithComputed = documentHandler.computedFields(json) match {
+      case x if x.fields.nonEmpty => data + (_computed -> x)
+      case _                      => data
+    }
+    JsObject(_data -> JsObject(dataWithComputed), _id -> json.fields(_id))
   }
 
   private def toWhiskJsonDoc(doc: Document): JsObject = {
     val js = doc.toJson().parseJson.asJsObject
     val rev = js.fields(_rev).convertTo[Int].toString
-    val wskJson = js.fields(_data).asJsObject.fields + (_id -> js.fields(_id)) + (_rev -> JsString(rev))
+    val wskJson = js.fields(_data).asJsObject.fields + (_id -> js.fields(_id)) + (_rev -> JsString(rev)) - _computed
     JsObject(wskJson)
   }
 
@@ -294,5 +307,4 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
   private def isDuplicateKeyException(e: MongoWriteException) = {
     ErrorCategory.fromErrorCode(e.getError.getCode) eq ErrorCategory.DUPLICATE_KEY
   }
-
 }

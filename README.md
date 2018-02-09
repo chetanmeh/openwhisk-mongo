@@ -58,6 +58,29 @@ Here following transformations were done
 1. `_rev` field is stored as integer and is [incremented][7] upon update of document 
 2. `_data` - The actual whisk document is stored under `_data` field except `_rev` and `_id`
 
+### Computed Fields
+
+Some of the CouchDB views use computed fields for searching. To enable such usecases `MongoDbStore`
+would compute such fields at time of creation itself and store them as a subdocument under `_computed`
+
+```json
+{
+  "_id": "foo/bar/computedRule1",
+  "_data": {
+    "name": "computedRule1",
+    "_computed": {
+      "rootns": "foo"
+    },
+    "publish": false,
+    "annotations": [],
+    "version": "0.0.1"
+  },
+  "_rev": 1
+}
+```
+
+Refer to GH-8 for further details
+
 ### Indexes 
 
 TBD - How CouchDB views are mapped to Mongo indexes
