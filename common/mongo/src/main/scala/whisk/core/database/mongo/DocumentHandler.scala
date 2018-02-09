@@ -20,7 +20,7 @@
 package whisk.core.database.mongo
 
 import spray.json._
-import DefaultJsonProtocol._
+import spray.json.DefaultJsonProtocol._
 import whisk.core.entity.EntityPath.PATHSEP
 
 trait DocumentHandler {
@@ -30,10 +30,17 @@ trait DocumentHandler {
    * computed in CouchDB views
    */
   def computedFields(js: JsObject): JsObject = JsObject.empty
+
+  def fieldsRequiredForView(ddoc: String, view: String): Set[String] = Set()
+
+  def computeView(ddoc: String, view: String, js: JsObject): JsObject = js
 }
 
 object ActivationHandler extends DocumentHandler {
   val NS_PATH = "nspath"
+  private val commonFields =
+    Set("namespace", "name", "version", "publish", "annotations", "activationId", "start", "cause")
+  private val fieldsForView = commonFields ++ Seq("end", "response.statusCode")
 
   override def computedFields(js: JsObject): JsObject = {
     val path = js.fields.get("namespace") match {
@@ -44,6 +51,33 @@ object ActivationHandler extends DocumentHandler {
       v.convertTo[String] != "sequence"
     }, true)
     dropNull((NS_PATH, path), ("deleteLogs", JsBoolean(deleteLogs)))
+  }
+
+  override def fieldsRequiredForView(ddoc: String, view: String): Set[String] = view match {
+    case "activations" => fieldsForView
+    case _             => Set()
+  }
+
+  override def computeView(ddoc: String, view: String, js: JsObject): JsObject = view match {
+    case "activations" => computeActivationView(js)
+    case _             => js
+  }
+
+  def computeActivationView(js: JsObject): JsObject = {
+    val common = js.fields.filterKeys(commonFields)
+
+    val (endTime, duration) = js.getFields("end", "start") match {
+      case Seq(JsNumber(end), JsNumber(start)) if end != 0 => (JsNumber(end), JsNumber(end - start))
+      case _                                               => (JsNull, JsNull)
+    }
+
+    val statusCode = js.fields.get("response") match {
+      case Some(r: JsObject) => r.fields.getOrElse("statusCode", JsNull)
+      case _                 => JsNull
+    }
+
+    val result = common + ("end" -> endTime) + ("duration" -> duration) + ("statusCode" -> statusCode)
+    JsObject(result.filter(_._2 != JsNull))
   }
 
   protected[mongo] def pathFilter(js: JsObject): String = {
@@ -83,6 +117,12 @@ object DefaultHandler extends DocumentHandler {}
 
 object WhisksHandler extends DocumentHandler {
   val ROOT_NS = "rootns"
+  private val commonFields = Set("namespace", "name", "version", "publish", "annotations", "updated")
+  private val actionFields = commonFields ++ Set("limits", "doc.exec.binary")
+  private val packageFields = commonFields ++ Set("binding")
+  private val packagePublicFields = commonFields
+  private val ruleFields = Set("_id") //For rule view is infact not called
+  private val triggerFields = commonFields
 
   override def computedFields(js: JsObject): JsObject = {
     js.fields.get("namespace") match {
@@ -91,5 +131,49 @@ object WhisksHandler extends DocumentHandler {
         if (ns.length > 1) JsObject((ROOT_NS, JsString(ns(0)))) else JsObject.empty
       case _ => JsObject.empty
     }
+  }
+
+  override def fieldsRequiredForView(ddoc: String, view: String): Set[String] = view match {
+    case "actions"         => actionFields
+    case "packages"        => packageFields
+    case "packages-public" => packagePublicFields
+    case "rules"           => ruleFields
+    case "triggers"        => triggerFields
+    case _                 => Set()
+  }
+
+  override def computeView(ddoc: String, view: String, js: JsObject): JsObject = view match {
+    case "actions"         => computeActionView(js)
+    case "packages"        => computePackageView(js)
+    case "packages-public" => computePublicPackageView(js)
+    case "rules"           => JsObject(js.fields.filterKeys(ruleFields))
+    case "triggers"        => computeTriggersView(js)
+    case _                 => js
+  }
+
+  def computeTriggersView(js: JsObject): JsObject = {
+    JsObject(js.fields.filterKeys(commonFields))
+  }
+
+  def computePublicPackageView(js: JsObject): JsObject = {
+    JsObject(js.fields.filterKeys(commonFields) + ("binding" -> JsFalse))
+  }
+
+  def computePackageView(js: JsObject): JsObject = {
+    val common = js.fields.filterKeys(commonFields)
+    val binding = js.fields.get("binding") match {
+      case Some(x: JsObject) if x.fields.nonEmpty => x
+      case _                                      => JsFalse
+    }
+    JsObject(common + ("binding" -> binding))
+  }
+
+  def computeActionView(js: JsObject): JsObject = {
+    val base = js.fields.filterKeys(commonFields ++ Set("limits"))
+    val exec_binary = js.fields.get("exec") match {
+      case Some(r: JsObject) => r.fields.getOrElse("binary", JsFalse)
+      case _                 => JsFalse
+    }
+    JsObject(base + ("exec" -> JsObject("binary" -> exec_binary)))
   }
 }

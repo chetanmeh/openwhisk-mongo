@@ -60,6 +60,75 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
       FullyQualifiedEntityName(EntityPath("system"), EntityName("bar")))
   }
 
+  behavior of "WhisksHandler computeView"
+
+  it should "include only common fields in trigger view" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "version" : 5,
+               |  "end"   : 9,
+               |  "cause" : 204
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace" : "foo",
+                   |  "version" : 5
+                   |}""".stripMargin.parseJson.asJsObject
+    WhisksHandler.computeView("foo", "triggers", js) shouldBe result
+  }
+
+  it should "include false binding in public package view" in {
+    val js =
+      """{
+        |  "namespace" : "foo",
+        |  "version" : 5,
+        |  "binding"   : {"foo" : "bar"},
+        |  "cause" : 204
+        |}""".stripMargin.parseJson.asJsObject
+
+    val result =
+      """{
+        |  "namespace" : "foo",
+        |  "version" : 5,
+        |  "binding" : false
+        |}""".stripMargin.parseJson.asJsObject
+    WhisksHandler.computeView("foo", "packages-public", js) shouldBe result
+  }
+
+  it should "include actual binding in package view" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "version" : 5,
+               |  "binding"   : {"foo" : "bar"},
+               |  "cause" : 204
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace" : "foo",
+                   |  "version" : 5,
+                   |  "binding" : {"foo" : "bar"}
+                   |}""".stripMargin.parseJson.asJsObject
+    WhisksHandler.computeView("foo", "packages", js) shouldBe result
+  }
+
+  it should "include limits and binary info in action view" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "version" : 5,
+               |  "binding"   : {"foo" : "bar"},
+               |  "limits" : 204,
+               |  "exec" : {"binary" : true }
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace" : "foo",
+                   |  "version" : 5,
+                   |  "limits" : 204,
+                   |  "exec" : { "binary" : true }
+                   |}""".stripMargin.parseJson.asJsObject
+    WhisksHandler.computeView("foo", "actions", js) shouldBe result
+  }
+
   behavior of "ActivationHandler computeFields"
 
   it should "return default value when no annotation found" in {
@@ -154,4 +223,78 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
     ActivationHandler.computedFields(js) shouldBe """{"nspath": "foons/bar", "deleteLogs" : true}""".parseJson
   }
 
+  behavior of "ActivationHandler computeActivationView"
+
+  it should "include only listed fields" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "extra" : false,
+               |  "cause" : 204
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+               |  "namespace" : "foo",
+               |  "cause" : 204
+               |}""".stripMargin.parseJson.asJsObject
+    ActivationHandler.computeView("foo", "activations", js) shouldBe result
+  }
+
+  it should "include duration when end is non zero" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "start" : 5,
+               |  "end"   : 9,
+               |  "cause" : 204
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace" : "foo",
+                   |  "start" : 5,
+                   |  "end"   : 9,
+                   |  "duration" : 4,
+                   |  "cause" : 204
+                   |}""".stripMargin.parseJson.asJsObject
+    ActivationHandler.computeActivationView(js) shouldBe result
+  }
+
+  it should "not include duration when end is zero" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "start" : 5,
+               |  "end"   : 0,
+               |  "cause" : 204
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace" : "foo",
+                   |  "start" : 5,
+                   |  "cause" : 204
+                   |}""".stripMargin.parseJson.asJsObject
+    ActivationHandler.computeActivationView(js) shouldBe result
+  }
+
+  it should "include statusCode" in {
+    val js = """{
+               |  "namespace": "foo",
+               |  "response": {"statusCode" : 404}
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace": "foo",
+                   |  "statusCode" : 404
+                   |}""".stripMargin.parseJson.asJsObject
+    ActivationHandler.computeActivationView(js) shouldBe result
+  }
+
+  it should "not include statusCode" in {
+    val js = """{
+               |  "namespace": "foo",
+               |  "response": {"status" : 404}
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace": "foo"
+                   |}""".stripMargin.parseJson.asJsObject
+    ActivationHandler.computeActivationView(js) shouldBe result
+  }
 }
