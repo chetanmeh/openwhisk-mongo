@@ -15,4 +15,5 @@ TERM=dumb ./gradlew install distDocker -PdockerImagePrefix=testing $GRADLE_PROJS
 cd $ROOTDIR
 TERM=dumb ./gradlew :tests:reportScovergae
 
+# Push coverage reports to codecov
 bash <(curl -s https://codecov.io/bash)
