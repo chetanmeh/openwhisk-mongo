@@ -1,5 +1,9 @@
 # OpenWhisk Mongo ArtifactStore
 
+[![Build Status](https://travis-ci.org/chetanmeh/openwhisk-mongo.svg?branch=master)](https://travis-ci.org/chetanmeh/openwhisk-mongo)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![codecov](https://codecov.io/gh/chetanmeh/openwhisk-mongo/branch/master/graph/badge.svg)](https://codecov.io/gh/chetanmeh/openwhisk-mongo)
+
 **Work in progress**
 
 This repository provides a [MongoDB][1] based [ArtifactStore][2] implementation for [Apache OpenWhisk][3]. It uses

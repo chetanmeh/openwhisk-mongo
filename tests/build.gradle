@@ -20,6 +20,17 @@ tasks.withType(ScalaCompile) {
     scalaCompileOptions.additionalParameters = gradle.scala.compileFlags
 }
 
+tasks.withType(Test) {
+    systemProperties(System.getProperties())
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+        exceptionFormat = 'full'
+    }
+    outputs.upToDateWhen { false } // force tests to run every time
+}
+
 afterEvaluate {
     def mainProject = project(':common:mongo')
     testScoverage {
