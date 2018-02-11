@@ -61,7 +61,7 @@ object ActivationHandler extends DocumentHandler {
     case _             => js
   }
 
-  def computeActivationView(js: JsObject): JsObject = {
+  private def computeActivationView(js: JsObject): JsObject = {
     val common = js.fields.filterKeys(commonFields)
 
     val (endTime, duration) = js.getFields("end", "start") match {
@@ -149,15 +149,15 @@ object WhisksHandler extends DocumentHandler {
     case _                 => js
   }
 
-  def computeTriggersView(js: JsObject): JsObject = {
+  private def computeTriggersView(js: JsObject): JsObject = {
     JsObject(js.fields.filterKeys(commonFields))
   }
 
-  def computePublicPackageView(js: JsObject): JsObject = {
+  private def computePublicPackageView(js: JsObject): JsObject = {
     JsObject(js.fields.filterKeys(commonFields) + ("binding" -> JsFalse))
   }
 
-  def computePackageView(js: JsObject): JsObject = {
+  private def computePackageView(js: JsObject): JsObject = {
     val common = js.fields.filterKeys(commonFields)
     val binding = js.fields.get("binding") match {
       case Some(x: JsObject) if x.fields.nonEmpty => x
@@ -166,7 +166,7 @@ object WhisksHandler extends DocumentHandler {
     JsObject(common + ("binding" -> binding))
   }
 
-  def computeActionView(js: JsObject): JsObject = {
+  private def computeActionView(js: JsObject): JsObject = {
     val base = js.fields.filterKeys(commonFields ++ Set("limits"))
     val exec_binary = js.fields.get("exec") match {
       case Some(r: JsObject) => r.fields.getOrElse("binary", JsFalse)

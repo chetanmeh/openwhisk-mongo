@@ -127,6 +127,61 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
     WhisksHandler.computeView("foo", "actions", js) shouldBe result
   }
 
+  it should "include binary as false when exec missing" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "version" : 5,
+               |  "binding"   : {"foo" : "bar"},
+               |  "limits" : 204
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace" : "foo",
+                   |  "version" : 5,
+                   |  "limits" : 204,
+                   |  "exec" : { "binary" : false }
+                   |}""".stripMargin.parseJson.asJsObject
+    WhisksHandler.computeView("foo", "actions", js) shouldBe result
+  }
+
+  it should "include binary as false when exec does not have binary prop" in {
+    val js = """{
+               |  "namespace" : "foo",
+               |  "version" : 5,
+               |  "binding"   : {"foo" : "bar"},
+               |  "limits" : 204,
+               |  "exec" : { "code" : "stuff" }
+               |}""".stripMargin.parseJson.asJsObject
+
+    val result = """{
+                   |  "namespace" : "foo",
+                   |  "version" : 5,
+                   |  "limits" : 204,
+                   |  "exec" : { "binary" : false }
+                   |}""".stripMargin.parseJson.asJsObject
+    WhisksHandler.computeView("foo", "actions", js) shouldBe result
+  }
+
+  behavior of "WhisksHandler fieldsRequiredForView"
+
+  it should "match the expected field names" in {
+    WhisksHandler.fieldsRequiredForView("foo", "actions") shouldBe
+      Set("namespace", "name", "version", "publish", "annotations", "updated", "limits", "doc.exec.binary")
+
+    WhisksHandler.fieldsRequiredForView("foo", "packages") shouldBe
+      Set("namespace", "name", "version", "publish", "annotations", "updated", "binding")
+
+    WhisksHandler.fieldsRequiredForView("foo", "packages-public") shouldBe
+      Set("namespace", "name", "version", "publish", "annotations", "updated")
+
+    WhisksHandler.fieldsRequiredForView("foo", "rules") shouldBe Set("_id")
+
+    WhisksHandler.fieldsRequiredForView("foo", "triggers") shouldBe
+      Set("namespace", "name", "version", "publish", "annotations", "updated")
+
+    WhisksHandler.fieldsRequiredForView("foo", "unknown") shouldBe Set()
+  }
+
   behavior of "ActivationHandler computeFields"
 
   it should "return default value when no annotation found" in {
@@ -252,7 +307,7 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
                    |  "duration" : 4,
                    |  "cause" : 204
                    |}""".stripMargin.parseJson.asJsObject
-    ActivationHandler.computeActivationView(js) shouldBe result
+    ActivationHandler.computeView("foo", "activations", js) shouldBe result
   }
 
   it should "not include duration when end is zero" in {
@@ -268,7 +323,7 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
                    |  "start" : 5,
                    |  "cause" : 204
                    |}""".stripMargin.parseJson.asJsObject
-    ActivationHandler.computeActivationView(js) shouldBe result
+    ActivationHandler.computeView("foo", "activations", js) shouldBe result
   }
 
   it should "include statusCode" in {
@@ -281,7 +336,7 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
                    |  "namespace": "foo",
                    |  "statusCode" : 404
                    |}""".stripMargin.parseJson.asJsObject
-    ActivationHandler.computeActivationView(js) shouldBe result
+    ActivationHandler.computeView("foo", "activations", js) shouldBe result
   }
 
   it should "not include statusCode" in {
@@ -293,6 +348,25 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
     val result = """{
                    |  "namespace": "foo"
                    |}""".stripMargin.parseJson.asJsObject
-    ActivationHandler.computeActivationView(js) shouldBe result
+    ActivationHandler.computeView("foo", "activations", js) shouldBe result
   }
+
+  behavior of "ActivationHandler fieldsRequiredForView"
+
+  it should "match the expected field names" in {
+    ActivationHandler.fieldsRequiredForView("foo", "activations") shouldBe
+      Set(
+        "namespace",
+        "name",
+        "version",
+        "publish",
+        "annotations",
+        "activationId",
+        "start",
+        "cause",
+        "end",
+        "response.statusCode")
+  }
+
+  ActivationHandler.fieldsRequiredForView("foo", "unknown") shouldBe Set()
 }
