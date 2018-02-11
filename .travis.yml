@@ -1,0 +1,27 @@
+sudo: required
+
+language: scala
+scala:
+   - 2.11.8
+
+addons:
+  apt:
+    sources:
+      - mongodb-3.4-trusty
+    packages:
+      - mongodb-org-server
+services:
+  - mongodb
+  - docker
+
+before_install:
+- cd $TRAVIS_BUILD_DIR
+install:
+- "./tools/travis/setupscan.sh"
+- cd $TRAVIS_BUILD_DIR
+- "./tools/travis/setup.sh"
+- cd $TRAVIS_BUILD_DIR
+script:
+- "./tools/travis/scancode.sh"
+- cd $TRAVIS_BUILD_DIR
+- "./tools/travis/build.sh"
