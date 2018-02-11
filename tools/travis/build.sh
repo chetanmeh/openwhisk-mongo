@@ -14,7 +14,7 @@ GRADLE_PROJS_SKIP="-x :actionRuntimes:pythonAction:distDocker  -x :actionRuntime
 TERM=dumb ./gradlew install distDocker -PdockerImagePrefix=testing -x test -x createKeystore $GRADLE_PROJS_SKIP
 
 cd $ROOTDIR
-TERM=dumb ./gradlew :tests:reportScovergae
+TERM=dumb ./gradlew :tests:reportScoverage
 
 # Push coverage reports to codecov
 bash <(curl -s https://codecov.io/bash)
