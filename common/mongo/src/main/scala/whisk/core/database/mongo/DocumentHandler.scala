@@ -20,6 +20,7 @@ package whisk.core.database.mongo
 import spray.json._
 import spray.json.DefaultJsonProtocol._
 import whisk.core.entity.EntityPath.PATHSEP
+import whisk.utils.JsHelpers
 
 trait DocumentHandler {
 
@@ -69,10 +70,7 @@ object ActivationHandler extends DocumentHandler {
       case _                                               => (JsNull, JsNull)
     }
 
-    val statusCode = js.fields.get("response") match {
-      case Some(r: JsObject) => r.fields.getOrElse("statusCode", JsNull)
-      case _                 => JsNull
-    }
+    val statusCode = JsHelpers.getFieldPath(js, "response", "statusCode").getOrElse(JsNull)
 
     val result = common + ("end" -> endTime) + ("duration" -> duration) + ("statusCode" -> statusCode)
     JsObject(result.filter(_._2 != JsNull))
@@ -116,7 +114,7 @@ object DefaultHandler extends DocumentHandler {}
 object WhisksHandler extends DocumentHandler {
   val ROOT_NS = "rootns"
   private val commonFields = Set("namespace", "name", "version", "publish", "annotations", "updated")
-  private val actionFields = commonFields ++ Set("limits", "doc.exec.binary")
+  private val actionFields = commonFields ++ Set("limits", "exec.binary")
   private val packageFields = commonFields ++ Set("binding")
   private val packagePublicFields = commonFields
   private val ruleFields = Set("_id") //For rule view is infact not called
@@ -168,10 +166,7 @@ object WhisksHandler extends DocumentHandler {
 
   private def computeActionView(js: JsObject): JsObject = {
     val base = js.fields.filterKeys(commonFields ++ Set("limits"))
-    val exec_binary = js.fields.get("exec") match {
-      case Some(r: JsObject) => r.fields.getOrElse("binary", JsFalse)
-      case _                 => JsFalse
-    }
-    JsObject(base + ("exec" -> JsObject("binary" -> exec_binary)))
+    val exec_binary = JsHelpers.getFieldPath(js, "exec", "binary")
+    JsObject(base + ("exec" -> JsObject("binary" -> exec_binary.getOrElse(JsFalse))))
   }
 }

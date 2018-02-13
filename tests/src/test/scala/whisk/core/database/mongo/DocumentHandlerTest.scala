@@ -166,7 +166,7 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
 
   it should "match the expected field names" in {
     WhisksHandler.fieldsRequiredForView("foo", "actions") shouldBe
-      Set("namespace", "name", "version", "publish", "annotations", "updated", "limits", "doc.exec.binary")
+      Set("namespace", "name", "version", "publish", "annotations", "updated", "limits", "exec.binary")
 
     WhisksHandler.fieldsRequiredForView("foo", "packages") shouldBe
       Set("namespace", "name", "version", "publish", "annotations", "updated", "binding")
