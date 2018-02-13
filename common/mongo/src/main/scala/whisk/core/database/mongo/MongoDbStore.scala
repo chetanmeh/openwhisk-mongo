@@ -288,10 +288,14 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
   }
 
   private def toWhiskJsonDoc(doc: Document): JsObject = {
-    val js = doc.toJson().parseJson.asJsObject
+    val js = toJsObject(doc)
     val rev = js.fields(_rev).convertTo[Int].toString
     val wskJson = js.fields(_data).asJsObject.fields + (_id -> js.fields(_id)) + (_rev -> JsString(rev)) - _computed
     JsObject(wskJson)
+  }
+
+  private def toJsObject(doc: Document): JsObject = {
+    MongoUtil.toSimpleJson(doc.toJson().parseJson.asJsObject)
   }
 
   private def reportFailure[T, U](f: Future[T], onFailure: Throwable => U): Future[T] = {

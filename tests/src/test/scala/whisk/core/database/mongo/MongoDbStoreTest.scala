@@ -17,6 +17,8 @@
 
 package whisk.core.database.mongo
 
+import java.time.Instant
+
 import org.junit.runner.RunWith
 import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
@@ -29,6 +31,9 @@ import whisk.core.entity.EntityName
 import whisk.core.entity.WhiskNamespace
 import whisk.core.entity.Subject
 import whisk.core.entity.DocInfo
+import whisk.core.entity.EntityPath
+import whisk.core.entity.WhiskActivation
+import whisk.core.entity.ActivationId
 
 import scala.concurrent.Await
 
@@ -117,6 +122,20 @@ class MongoDbStoreTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
     val doc = put(authStore, auth)
     val authFromGet = getWhiskAuth(doc)
     authFromGet shouldBe auth
+  }
+
+  it should "get entity with timestamp" in {
+    implicit val tid: TransactionId = transid()
+    val activation = WhiskActivation(
+      EntityPath("testnamespace"),
+      EntityName("activation1"),
+      Subject(),
+      ActivationId(),
+      start = Instant.now,
+      end = Instant.now)
+    val activationDoc = put(activationStore, activation)
+    val activationFromDb = Await.result(activationStore.get[WhiskActivation](activationDoc), dbOpTimeout)
+    activationFromDb shouldBe activation
   }
 
   it should "throws NoDocumentException when document revision does not match" in {
