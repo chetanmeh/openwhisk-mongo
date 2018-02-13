@@ -77,7 +77,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
   override protected[core] implicit val executionContext: ExecutionContext = system.dispatcher
 
   //TODO Share MongoClient between stores
-  private val client: MongoClient = MongoClient(config.uri)
+  private val client: MongoClient = MongoClientHelper.createClient(config.uri)
   private val coll: MongoCollection[Document] = client.getDatabase(config.db).getCollection[Document](collName)
 
   //TODO Index creation

@@ -17,11 +17,14 @@
 package whisk.core.database.mongo
 
 import akka.stream.ActorMaterializer
+import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.Level
 import common.StreamLogging
 import common.WskActorSystem
 import org.scalatest.Matchers
 import org.scalatest.Suite
 import org.scalatest.BeforeAndAfter
+import org.slf4j.LoggerFactory
 import spray.json.JsObject
 import whisk.core.WhiskConfig
 import whisk.core.database.DocumentSerializer
@@ -64,6 +67,14 @@ trait ArtifactStoreHelper
     super.afterAll()
   }
 
+  before {
+    if (debug) {
+      MongoClientHelper.enableTestMode()
+      loggerOf(MongoClientHelper.getClass.getName).setLevel(Level.TRACE)
+      loggerOf("org.mongodb.driver.protocol").setLevel(Level.TRACE)
+    }
+  }
+
   after {
     if (debug) println(logLines.mkString("\n"))
     cleanup()
@@ -76,5 +87,10 @@ trait ArtifactStoreHelper
       case x if x == classOf[WhiskAuth]       => config.dbAuths
     }
     get(id, dbName)
+  }
+
+  private def loggerOf(clazz: String) = {
+    val factory = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+    factory.getLogger(clazz)
   }
 }
