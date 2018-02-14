@@ -19,4 +19,6 @@ package whisk.core.database.mongo
 
 sealed abstract class MongoDbStoreRuntimeException(message: String) extends RuntimeException(message)
 
+case class UnsupportedQueryKeys(message: String) extends MongoDbStoreRuntimeException(message)
+case class UnsupportedView(message: String) extends MongoDbStoreRuntimeException(message)
 case class UnknownBsonType(message: String) extends MongoDbStoreRuntimeException(message)

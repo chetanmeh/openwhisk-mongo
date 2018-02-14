@@ -57,14 +57,22 @@ import whisk.core.database.ArtifactStoreException
 import whisk.core.database.NoDocumentException
 import whisk.core.database.DocumentTypeMismatchException
 import whisk.core.database.DocumentUnreadable
+import whisk.core.database.mongo.MongoDbStore._data
+import whisk.core.database.mongo.MongoDbStore._computed
 import whisk.core.entity.DocId
 import whisk.core.entity.DocRevision
 import whisk.core.entity.WhiskDocument
 import whisk.http.Messages
 
+object MongoDbStore {
+  val _data = "_data"
+  val _computed = "_computed"
+}
+
 class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfig,
                                                               collName: String,
                                                               documentHandler: DocumentHandler,
+                                                              viewMapper: MongoViewMapper,
                                                               useBatching: Boolean = false)(
   implicit system: ActorSystem,
   val logging: Logging,
@@ -81,10 +89,8 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
   private val coll: MongoCollection[Document] = client.getDatabase(config.db).getCollection[Document](collName)
 
   //TODO Index creation
-  private val _rev = "_rev"
-  private val _data = "_data"
   private val _id = "_id"
-  private val _computed = "_computed"
+  private val _rev = "_rev"
 
   override protected[database] def put(d: DocumentAbstraction)(implicit transid: TransactionId): Future[DocInfo] = {
     val asJson = d.toDocumentRecord
@@ -231,11 +237,40 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
     require(!(reduce && includeDocs), "reduce and includeDocs cannot both be true")
     require(!reduce, "Reduce scenario not supported") //TODO Investigate reduce
 
-    //If includeDocs then projection is not used
-    //endKey.length == startKey.length || endKey.length = startKey.length + 1
-    //endKey can be numeric or string == TOP
+    val Array(ddoc, viewName) = table.split("/")
 
-    Future.failed(new Exception()) //FIXME
+    val start = transid.started(this, LoggingMarkers.DATABASE_QUERY, s"[QUERY] '$collName' searching '$table")
+
+    val find = coll
+      .find(viewMapper.filter(ddoc, viewName, startKey, endKey))
+      .sort(viewMapper.sort(ddoc, viewName, descending))
+      .skip(skip)
+
+    if (limit > 0) {
+      find.limit(limit)
+    }
+
+    //If includeDocs then projection is not used
+    if (!includeDocs) {
+      //Prepend the _data field name to match the schema in Mongo
+      val projectedFields = documentHandler.fieldsRequiredForView(ddoc, viewName).toSeq.map(pf => s"${_data}.$pf")
+      find.projection(include(projectedFields: _*))
+    }
+
+    val f = find
+      .toFuture()
+      .map { docs =>
+        docs.map { d =>
+          if (includeDocs) toWhiskJsonDoc(d) else toJsObject(d).fields("_data").asJsObject
+        }
+      }
+      .map(_.toList)
+
+    reportFailure(
+      f,
+      failure =>
+        transid
+          .failed(this, start, s"[QUERY] '$collName' internal error, failure: '${failure.getMessage}'", ErrorLevel))
   }
 
   override protected[core] def count(table: String,

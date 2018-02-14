@@ -32,4 +32,12 @@ trait EntityNameSupport {
     counter = counter + 1
     EntityName(s"$n$counter")
   }
+
+  object MakeName {
+    @volatile var counter = 1
+    def next(prefix: String = "test")(): EntityName = {
+      counter = counter + 1
+      EntityName(s"${prefix}_name$counter")
+    }
+  }
 }

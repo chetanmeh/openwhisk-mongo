@@ -32,7 +32,7 @@ import whisk.core.entity.WhiskEntity
 class ComputedFieldsTest extends FlatSpec with ArtifactStoreHelper with MongoSupport {
   val namespace = EntityPath("testnamespace")
 
-  debug = true
+  debug = false
 
   behavior of "computedField for WhiskEntity"
 

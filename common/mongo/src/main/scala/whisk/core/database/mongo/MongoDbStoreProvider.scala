@@ -29,6 +29,7 @@ import whisk.core.entity.DocumentReader
 import pureconfig._
 import whisk.core.entity.WhiskEntity
 import whisk.core.entity.WhiskActivation
+import whisk.core.entity.WhiskAuth
 
 import scala.reflect.ClassTag
 
@@ -49,14 +50,15 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
     logging: Logging,
     materializer: ActorMaterializer): ArtifactStore[D] = {
     val mc = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
-    new MongoDbStore[D](mc, name(config), handler(implicitly[ClassTag[D]]), useBatching)
+    val (handler, mapper) = handlerAndMapper(implicitly[ClassTag[D]])
+    new MongoDbStore[D](mc, name(config), handler, mapper, useBatching)
   }
 
-  private def handler[D](entityType: ClassTag[D]): DocumentHandler = {
+  private def handlerAndMapper[D](entityType: ClassTag[D]): (DocumentHandler, MongoViewMapper) = {
     entityType.runtimeClass match {
-      case x if x == classOf[WhiskEntity]     => WhisksHandler
-      case x if x == classOf[WhiskActivation] => ActivationHandler
-      case _                                  => DefaultHandler
+      case x if x == classOf[WhiskEntity]     => (WhisksHandler, WhisksViewMapper)
+      case x if x == classOf[WhiskActivation] => (ActivationHandler, ActivationViewMapper)
+      case x if x == classOf[WhiskAuth]       => (DefaultHandler, SubjectViewMapper)
     }
   }
 }
