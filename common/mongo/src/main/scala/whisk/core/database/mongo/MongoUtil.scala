@@ -22,7 +22,7 @@ import spray.json.JsValue
 import spray.json.JsString
 import spray.json.JsNumber
 
-object MongoUtil {
+private object MongoUtil {
 
   /** Returns transformed JsObject with BSON types mapped to simple JSON types
    *

@@ -31,14 +31,14 @@ trait MongoViewMapper {
 
   def sort(ddoc: String, view: String, descending: Boolean): Bson = ???
 
-  protected def checkKeys(startKey: List[Any], endKey: List[Any]) = {
+  protected def checkKeys(startKey: List[Any], endKey: List[Any]): Unit = {
     require(startKey.nonEmpty)
     require(endKey.nonEmpty)
     require(startKey.head == endKey.head, s"First key should be same => ($startKey) - ($endKey)")
   }
 }
 
-object ActivationViewMapper extends MongoViewMapper {
+private object ActivationViewMapper extends MongoViewMapper {
   private val NS = s"${_data}.namespace"
   private val NS_WITH_PATH = s"${_data}.${_computed}.${ActivationHandler.NS_PATH}"
   private val START = s"${_data}.start"
@@ -79,7 +79,8 @@ object ActivationViewMapper extends MongoViewMapper {
     filter
   }
 }
-object WhisksViewMapper extends MongoViewMapper {
+
+private object WhisksViewMapper extends MongoViewMapper {
   private val NS = s"${_data}.namespace"
   private val ROOT_NS = s"${_data}.${_computed}.${WhisksHandler.ROOT_NS}"
   private val TYPE = s"${_data}.entityType"
@@ -129,4 +130,4 @@ object WhisksViewMapper extends MongoViewMapper {
     case _                              => throw UnsupportedView(s"$ddoc/$view")
   }
 }
-object SubjectViewMapper extends MongoViewMapper {}
+private object SubjectViewMapper extends MongoViewMapper {}

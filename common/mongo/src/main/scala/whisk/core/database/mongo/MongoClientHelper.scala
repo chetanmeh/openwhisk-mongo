@@ -33,7 +33,7 @@ import org.mongodb.scala.connection.SslSettings
 import org.mongodb.scala.connection.SocketSettings
 import org.slf4j.LoggerFactory
 
-object MongoClientHelper {
+private object MongoClientHelper {
   private val log = LoggerFactory.getLogger(MongoClientHelper.getClass)
 
   private var testMode: Boolean = false
