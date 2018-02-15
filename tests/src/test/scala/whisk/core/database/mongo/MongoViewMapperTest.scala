@@ -28,9 +28,10 @@ import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 import whisk.core.entity.WhiskEntityQueries.TOP
 import org.mongodb.scala.model.Filters.{equal => meq, _}
+import org.scalatest.OptionValues
 
 @RunWith(classOf[JUnitRunner])
-class MongoViewMapperTest extends FlatSpec with Matchers {
+class MongoViewMapperTest extends FlatSpec with Matchers with OptionValues {
   implicit class RichBson(val b: Bson) {
     def toDoc: BsonDocument = b.toBsonDocument(classOf[Document], MongoClient.DEFAULT_CODEC_REGISTRY)
   }
@@ -89,17 +90,17 @@ class MongoViewMapperTest extends FlatSpec with Matchers {
   behavior of "ActivationViewMapper sort"
 
   it should "sort descending" in {
-    ActivationViewMapper.sort("whisks-filters.v2.1.0", "activations", descending = true).toDoc shouldBe
-      Sorts.descending("_data.start")
-    ActivationViewMapper.sort("whisks.v2.1.0", "activations", descending = true).toDoc shouldBe
-      Sorts.descending("_data.start")
+    ActivationViewMapper.sort("whisks-filters.v2.1.0", "activations", descending = true).value.toDoc shouldBe
+      Sorts.descending("_data.start").toDoc
+    ActivationViewMapper.sort("whisks.v2.1.0", "activations", descending = true).value.toDoc shouldBe
+      Sorts.descending("_data.start").toDoc
   }
 
   it should "sort ascending" in {
-    ActivationViewMapper.sort("whisks-filters.v2.1.0", "activations", descending = false).toDoc shouldBe
-      Sorts.ascending("_data.start")
-    ActivationViewMapper.sort("whisks.v2.1.0", "activations", descending = false).toDoc shouldBe
-      Sorts.ascending("_data.start")
+    ActivationViewMapper.sort("whisks-filters.v2.1.0", "activations", descending = false).value.toDoc shouldBe
+      Sorts.ascending("_data.start").toDoc
+    ActivationViewMapper.sort("whisks.v2.1.0", "activations", descending = false).value.toDoc shouldBe
+      Sorts.ascending("_data.start").toDoc
   }
 
   it should "throw UnsupportedView" in {
@@ -172,7 +173,7 @@ class MongoViewMapperTest extends FlatSpec with Matchers {
   it should "sort descending" in {
     whiskTypes.foreach {
       case (view, _) =>
-        WhisksViewMapper.sort("whisks.v2.1.0", view, descending = true).toDoc shouldBe
+        WhisksViewMapper.sort("whisks.v2.1.0", view, descending = true).value.toDoc shouldBe
           Sorts.descending("_data.updated").toDoc
     }
   }
@@ -180,7 +181,7 @@ class MongoViewMapperTest extends FlatSpec with Matchers {
   it should "sort ascending" in {
     whiskTypes.foreach {
       case (view, _) =>
-        WhisksViewMapper.sort("whisks.v2.1.0", view, descending = false).toDoc shouldBe
+        WhisksViewMapper.sort("whisks.v2.1.0", view, descending = false).value.toDoc shouldBe
           Sorts.ascending("_data.updated").toDoc
     }
   }

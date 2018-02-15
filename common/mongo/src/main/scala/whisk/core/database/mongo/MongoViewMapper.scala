@@ -29,7 +29,7 @@ trait MongoViewMapper {
 
   def filter(ddoc: String, view: String, startKey: List[Any], endKey: List[Any]): Bson = ???
 
-  def sort(ddoc: String, view: String, descending: Boolean): Bson = ???
+  def sort(ddoc: String, view: String, descending: Boolean): Option[Bson] = ???
 
   protected def checkKeys(startKey: List[Any], endKey: List[Any]): Unit = {
     require(startKey.nonEmpty)
@@ -54,12 +54,11 @@ private object ActivationViewMapper extends MongoViewMapper {
     }
   }
 
-  override def sort(ddoc: String, view: String, descending: Boolean): Bson = {
+  override def sort(ddoc: String, view: String, descending: Boolean): Option[Bson] = {
     val sort = if (descending) Sorts.descending(START) else Sorts.ascending(START)
     view match {
-      case "activations" if ddoc.startsWith("whisks-filters") => sort
-      case "activations" if ddoc.startsWith("whisks")         => sort
-      case _                                                  => throw UnsupportedView(s"$ddoc/$view")
+      case "activations" if ddoc.startsWith("whisks") => Some(sort)
+      case _                                          => throw UnsupportedView(s"$ddoc/$view")
     }
   }
 
@@ -104,7 +103,12 @@ private object WhisksViewMapper extends MongoViewMapper {
       case (ns :: Nil, _ :: `TOP` :: Nil) =>
         or(and(matchType, matchNS), and(matchType, matchRootNS))
       case (ns :: since :: Nil, _ :: `TOP` :: `TOP` :: Nil) =>
-        or(and(matchType, matchNS, gte(UPDATED, since)), and(matchType, matchRootNS, gte(UPDATED, since)))
+        // @formatter:off
+        or(
+          and(matchType, matchNS, gte(UPDATED, since)),
+          and(matchType, matchRootNS, gte(UPDATED, since))
+        )
+        // @formatter:on
       case (ns :: since :: Nil, _ :: upto :: `TOP` :: Nil) =>
         or(
           and(matchType, matchNS, gte(UPDATED, since), lte(UPDATED, upto)),
@@ -114,10 +118,11 @@ private object WhisksViewMapper extends MongoViewMapper {
     filter
   }
 
-  override def sort(ddoc: String, view: String, descending: Boolean): Bson = {
+  override def sort(ddoc: String, view: String, descending: Boolean): Option[Bson] = {
     view match {
       case "actions" | "rules" | "triggers" | "packages" | "packages-public" if ddoc.startsWith("whisks") =>
-        if (descending) Sorts.descending(UPDATED) else Sorts.ascending(UPDATED)
+        val sort = if (descending) Sorts.descending(UPDATED) else Sorts.ascending(UPDATED)
+        Some(sort)
       case _ => throw UnsupportedView(s"$ddoc/$view")
     }
   }

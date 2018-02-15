@@ -243,8 +243,9 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
 
     val find = coll
       .find(viewMapper.filter(ddoc, viewName, startKey, endKey))
-      .sort(viewMapper.sort(ddoc, viewName, descending))
       .skip(skip)
+
+    viewMapper.sort(ddoc, viewName, descending).foreach(find.sort)
 
     if (limit > 0) {
       find.limit(limit)
