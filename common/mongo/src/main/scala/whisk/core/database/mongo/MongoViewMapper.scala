@@ -27,9 +27,9 @@ import whisk.core.entity.WhiskEntityQueries
 trait MongoViewMapper {
   protected val TOP: String = WhiskEntityQueries.TOP
 
-  def filter(ddoc: String, view: String, startKey: List[Any], endKey: List[Any]): Bson = ???
+  def filter(ddoc: String, view: String, startKey: List[Any], endKey: List[Any]): Bson
 
-  def sort(ddoc: String, view: String, descending: Boolean): Option[Bson] = ???
+  def sort(ddoc: String, view: String, descending: Boolean): Option[Bson]
 
   protected def checkKeys(startKey: List[Any], endKey: List[Any]): Unit = {
     require(startKey.nonEmpty)
@@ -135,4 +135,42 @@ private object WhisksViewMapper extends MongoViewMapper {
     case _                              => throw UnsupportedView(s"$ddoc/$view")
   }
 }
-private object SubjectViewMapper extends MongoViewMapper {}
+private object SubjectViewMapper extends MongoViewMapper {
+  private val BLOCKED = s"${_data}.blocked"
+  private val SUBJECT = s"${_data}.subject"
+  private val UUID = s"${_data}.uuid"
+  private val KEY = s"${_data}.key"
+  private val NS_NAME = s"${_data}.namespaces.name"
+  private val NS_UUID = s"${_data}.namespaces.uuid"
+  private val NS_KEY = s"${_data}.namespaces.key"
+
+  override def filter(ddoc: String, view: String, startKey: List[Any], endKey: List[Any]): Bson = {
+    checkSupportedView(ddoc, view)
+    require(startKey == endKey, s"startKey: $startKey and endKey: $endKey must be same for $ddoc/$view")
+    val notBlocked = notEqual(BLOCKED, true)
+    startKey match {
+      case ns :: Nil          => and(notBlocked, or(equal(SUBJECT, ns), equal(NS_NAME, ns)))
+      case uuid :: key :: Nil =>
+        // @formatter:off
+        and(
+          notBlocked,
+          or(
+            and(equal(UUID, uuid), equal(KEY, key)),
+            and(equal(NS_UUID, uuid), equal(NS_KEY, key))
+          ))
+        // @formatter:on
+      case _ => throw UnsupportedQueryKeys(s"$ddoc/$view -> ($startKey, $endKey)")
+    }
+  }
+
+  override def sort(ddoc: String, view: String, descending: Boolean): Option[Bson] = {
+    checkSupportedView(ddoc, view)
+    None
+  }
+
+  def checkSupportedView(ddoc: String, view: String): Unit = {
+    if (ddoc != "subjects" || view != "identities") {
+      throw UnsupportedView(s"$ddoc/$view")
+    }
+  }
+}

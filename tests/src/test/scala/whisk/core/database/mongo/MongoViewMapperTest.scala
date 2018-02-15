@@ -191,4 +191,44 @@ class MongoViewMapperTest extends FlatSpec with Matchers with OptionValues {
       WhisksViewMapper.sort("whisks.v2.1.0", "action-foo", descending = true)
     }
   }
+
+  behavior of "SubjectViewMapper filter"
+
+  it should "match by subject or namespace" in {
+    SubjectViewMapper.filter("subjects", "identities", List("foo"), List("foo")).toDoc shouldBe
+      and(notEqual("_data.blocked", true), or(meq("_data.subject", "foo"), meq("_data.namespaces.name", "foo"))).toDoc
+  }
+
+  it should "match by uuid and key" in {
+    SubjectViewMapper.filter("subjects", "identities", List("u1", "k1"), List("u1", "k1")).toDoc shouldBe
+      and(
+        notEqual("_data.blocked", true),
+        or(
+          and(meq("_data.uuid", "u1"), meq("_data.key", "k1")),
+          and(meq("_data.namespaces.uuid", "u1"), meq("_data.namespaces.key", "k1")))).toDoc
+  }
+
+  it should "throw exception when keys are not same" in {
+    intercept[IllegalArgumentException] {
+      SubjectViewMapper.filter("subjects", "identities", List("u1", "k1"), List("u1", "k2"))
+    }
+  }
+
+  it should "throw UnsupportedQueryKeys exception when keys are not know" in {
+    intercept[UnsupportedQueryKeys] {
+      SubjectViewMapper.filter("subjects", "identities", List("u1", "k1", "foo"), List("u1", "k1", "foo"))
+    }
+  }
+
+  it should "throw UnsupportedView exception when view is not known" in {
+    intercept[UnsupportedView] {
+      SubjectViewMapper.filter("subjects", "identities-foo", List("u1", "k1", "foo"), List("u1", "k1", "foo"))
+    }
+  }
+
+  behavior of "SubjectViewMapper sort"
+
+  it should "sort none" in {
+    SubjectViewMapper.sort("subjects", "identities", descending = true) shouldBe None
+  }
 }
