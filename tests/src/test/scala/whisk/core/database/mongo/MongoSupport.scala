@@ -37,13 +37,6 @@ trait MongoSupport extends BeforeAndAfterAll with ArtifactStoreUtils {
   lazy val mongoConfig: MongoConfig = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
   lazy val mongoClient = MongoClient(mongoConfig.uri)
 
-  override protected def beforeAll(): Unit = {
-    System.setProperty("whisk.mongo.uri", "mongodb://localhost:27017")
-    System.setProperty("whisk.mongo.db", "ow_test")
-
-    super.beforeAll()
-  }
-
   override def get(id: String, dbName: String)(implicit ec: ExecutionContext): JsObject = {
     val f = mongoClient.getDatabase(mongoConfig.db).getCollection[Document](dbName).find(equal("_id", id)).head()
     Await.result(f.map { doc =>
