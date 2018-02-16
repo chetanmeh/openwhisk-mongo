@@ -30,7 +30,7 @@ import whisk.core.entity.EntityName
 import whisk.core.entity.FullyQualifiedEntityName
 
 @RunWith(classOf[JUnitRunner])
-class DocumentHandlerTest extends FlatSpec with Matchers {
+class DocumentHandlerTests extends FlatSpec with Matchers {
 
   behavior of "WhisksHandler computeFields"
 

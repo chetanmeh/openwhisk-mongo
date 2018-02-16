@@ -24,7 +24,7 @@ import org.scalatest.junit.JUnitRunner
 import spray.json._
 
 @RunWith(classOf[JUnitRunner])
-class MongoUtilTest extends FlatSpec with Matchers {
+class MongoUtilTests extends FlatSpec with Matchers {
   behavior of "toSimpleJson"
 
   it should "transform $numberLong to JsNumber" in {

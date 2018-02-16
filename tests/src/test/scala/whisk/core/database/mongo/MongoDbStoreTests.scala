@@ -38,7 +38,7 @@ import whisk.core.entity.ActivationId
 import scala.concurrent.Await
 
 @RunWith(classOf[JUnitRunner])
-class MongoDbStoreTest extends FlatSpec with ArtifactStoreHelper with MongoSupport {
+class MongoDbStoreTests extends FlatSpec with ArtifactStoreHelper with MongoSupport {
 
   behavior of "MongoDbStore put"
 

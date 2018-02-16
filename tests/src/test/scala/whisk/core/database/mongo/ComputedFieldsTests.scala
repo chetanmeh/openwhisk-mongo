@@ -29,7 +29,7 @@ import whisk.core.entity.FullyQualifiedEntityName
 import whisk.core.entity.WhiskEntity
 
 @RunWith(classOf[JUnitRunner])
-class ComputedFieldsTest extends FlatSpec with ArtifactStoreHelper with MongoSupport {
+class ComputedFieldsTests extends FlatSpec with ArtifactStoreHelper with MongoSupport {
   val namespace = EntityPath("testnamespace")
 
   debug = false

@@ -46,7 +46,7 @@ import whisk.utils.JsHelpers
 import scala.concurrent.Await
 
 @RunWith(classOf[JUnitRunner])
-class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSupport {
+class MongoDbQueryTests extends FlatSpec with ArtifactStoreHelper with MongoSupport {
 
   val creds1 = WhiskAuthHelpers.newAuth(Subject("s314159"))
   val ns1 = EntityPath(creds1.subject.asString)
