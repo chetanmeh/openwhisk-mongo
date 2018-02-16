@@ -32,7 +32,40 @@ trait DocumentHandler {
 
   def fieldsRequiredForView(ddoc: String, view: String): Set[String] = Set()
 
-  def computeView(ddoc: String, view: String, js: JsObject): JsObject = js
+  def transformViewResult(ddoc: String,
+                          view: String,
+                          startKey: List[Any],
+                          endKey: List[Any],
+                          includeDocs: Boolean,
+                          result: List[JsObject]): List[JsObject] = {
+
+    result.map(transformViewResult(ddoc, view, startKey, endKey, includeDocs, _))
+  }
+
+  protected def transformViewResult(ddoc: String,
+                                    view: String,
+                                    startKey: List[Any],
+                                    endKey: List[Any],
+                                    includeDocs: Boolean,
+                                    js: JsObject): JsObject = {
+    val result = JsObject(
+      "id" -> js.fields("_id"),
+      "key" -> createKey(ddoc, view, startKey, js),
+      "value" -> computeView(ddoc, view, js))
+
+    if (includeDocs) JsObject(result.fields + ("doc" -> js)) else result
+  }
+
+  /**
+   * Computes the view as per viewName. Its passed either the projected object or actual
+   * object
+   */
+  def computeView(ddoc: String, view: String, js: JsObject): JsObject
+
+  /**
+   * Key is an array which matches the view query key
+   */
+  protected def createKey(ddoc: String, view: String, startKey: List[Any], js: JsObject): JsArray
 }
 
 object ActivationHandler extends DocumentHandler {
@@ -54,12 +87,20 @@ object ActivationHandler extends DocumentHandler {
 
   override def fieldsRequiredForView(ddoc: String, view: String): Set[String] = view match {
     case "activations" => fieldsForView
-    case _             => Set()
+    case _             => throw UnsupportedView(s"$ddoc/$view")
   }
 
-  override def computeView(ddoc: String, view: String, js: JsObject): JsObject = view match {
+  def computeView(ddoc: String, view: String, js: JsObject): JsObject = view match {
     case "activations" => computeActivationView(js)
-    case _             => js
+    case _             => throw UnsupportedView(s"$ddoc/$view")
+  }
+
+  def createKey(ddoc: String, view: String, startKey: List[Any], js: JsObject): JsArray = {
+    startKey match {
+      case (ns: String) :: Nil      => JsArray(Vector(JsString(ns)))
+      case (ns: String) :: _ :: Nil => JsArray(Vector(JsString(ns), js.fields("start")))
+      case _                        => throw UnsupportedQueryKeys("$ddoc/$view -> ($startKey, $endKey)")
+    }
   }
 
   private def computeActivationView(js: JsObject): JsObject = {
@@ -109,7 +150,12 @@ object ActivationHandler extends DocumentHandler {
   private def dropNull(fields: JsField*) = JsObject(fields.filter(_._2 != JsNull): _*)
 }
 
-object DefaultHandler extends DocumentHandler {}
+object SubjectHandler extends DocumentHandler {
+
+  override def computeView(ddoc: String, view: String, js: JsObject): JsObject = ???
+
+  override protected def createKey(ddoc: String, view: String, startKey: List[Any], js: JsObject): JsArray = ???
+}
 
 object WhisksHandler extends DocumentHandler {
   val ROOT_NS = "rootns"
@@ -135,16 +181,24 @@ object WhisksHandler extends DocumentHandler {
     case "packages-public" => packagePublicFields
     case "rules"           => ruleFields
     case "triggers"        => triggerFields
-    case _                 => Set()
+    case _                 => throw UnsupportedView(s"$ddoc/$view")
   }
 
-  override def computeView(ddoc: String, view: String, js: JsObject): JsObject = view match {
+  def computeView(ddoc: String, view: String, js: JsObject): JsObject = view match {
     case "actions"         => computeActionView(js)
     case "packages"        => computePackageView(js)
     case "packages-public" => computePublicPackageView(js)
     case "rules"           => JsObject(js.fields.filterKeys(ruleFields))
     case "triggers"        => computeTriggersView(js)
-    case _                 => js
+    case _                 => throw UnsupportedView(s"$ddoc/$view")
+  }
+
+  def createKey(ddoc: String, view: String, startKey: List[Any], js: JsObject): JsArray = {
+    startKey match {
+      case (ns: String) :: Nil      => JsArray(Vector(JsString(ns)))
+      case (ns: String) :: _ :: Nil => JsArray(Vector(JsString(ns), js.fields("updated")))
+      case _                        => throw UnsupportedQueryKeys("$ddoc/$view -> ($startKey, $endKey)")
+    }
   }
 
   private def computeTriggersView(js: JsObject): JsObject = {

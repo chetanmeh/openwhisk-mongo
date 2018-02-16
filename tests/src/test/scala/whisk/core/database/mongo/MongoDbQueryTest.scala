@@ -23,6 +23,10 @@ import org.junit.runner.RunWith
 import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 import spray.json.JsObject
+import spray.json.JsString
+import spray.json.JsArray
+import spray.json.JsNumber
+import spray.json.JsValue
 import whisk.common.TransactionId
 import whisk.core.controller.test.WhiskAuthHelpers
 import whisk.core.database.StaleParameter
@@ -37,6 +41,7 @@ import whisk.core.entity.EntityName
 import whisk.core.entity.ActivationId
 import whisk.core.entity.WhiskEntity
 import whisk.core.entity.WhiskEntityQueries.TOP
+import whisk.utils.JsHelpers
 
 import scala.concurrent.Await
 
@@ -54,6 +59,48 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
 
   behavior of "MongoDbStore query"
 
+  it should "find single entity" in {
+    implicit val tid = transid()
+
+    val action = newAction(ns1)
+    val docInfo = put(entityStore, action)
+
+    val result = query[WhiskEntity](
+      entityStore,
+      "whisks/actions",
+      List(ns1.asString, 0),
+      List(ns1.asString, TOP, TOP),
+      includeDocs = true)
+
+    result should have length 1
+
+    def js = result.head
+    js.fields("id") shouldBe JsString(docInfo.id.id)
+    js.fields("key") shouldBe JsArray(JsString(ns1.asString), JsNumber(action.updated.toEpochMilli))
+    js.fields.get("value") shouldBe defined
+    js.fields.get("doc") shouldBe defined
+    js.fields("value") shouldBe action.summaryAsJson
+    dropRev(js.fields("doc").asJsObject) shouldBe action.toDocumentRecord
+  }
+
+  it should "not have doc with includeDocs = false" in {
+    implicit val tid = transid()
+
+    val action = newAction(ns1)
+    val docInfo = put(entityStore, action)
+
+    val result = query[WhiskEntity](entityStore, "whisks/actions", List(ns1.asString, 0), List(ns1.asString, TOP, TOP))
+
+    result should have length 1
+
+    def js = result.head
+    js.fields("id") shouldBe JsString(docInfo.id.id)
+    js.fields("key") shouldBe JsArray(JsString(ns1.asString), JsNumber(action.updated.toEpochMilli))
+    js.fields.get("value") shouldBe defined
+    js.fields.get("doc") shouldBe None
+    js.fields("value") shouldBe action.summaryAsJson
+  }
+
   it should "find all entities" in {
     implicit val tid = transid()
 
@@ -66,7 +113,7 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
     val result = query[WhiskEntity](entityStore, "whisks/actions", List(ns1.asString, 0), List(ns1.asString, TOP, TOP))
 
     result should have length entities.length
-    result should contain theSameElementsAs entities.map(_.summaryAsJson)
+    result.map(_.fields("value")) should contain theSameElementsAs entities.map(_.summaryAsJson)
   }
 
   it should "return result in sorted order" in {
@@ -81,7 +128,10 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
       List("testns/testact", 0),
       List("testns/testact", TOP, TOP))
 
-    resultDescending.map(_.fields("start")) shouldBe activations.map(_.summaryAsJson.fields("start")).reverse
+    resultDescending should have length activations.length
+    resultDescending.map(getJsField(_, "value", "start")) shouldBe activations
+      .map(_.summaryAsJson.fields("start"))
+      .reverse
 
     val resultAscending = query[WhiskActivation](
       activationStore,
@@ -90,7 +140,7 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
       List("testns/testact", TOP, TOP),
       descending = false)
 
-    resultAscending.map(_.fields("start")) shouldBe activations.map(_.summaryAsJson.fields("start"))
+    resultAscending.map(getJsField(_, "value", "start")) shouldBe activations.map(_.summaryAsJson.fields("start"))
   }
 
   it should "support skipping results" in {
@@ -107,7 +157,7 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
       skip = 5,
       descending = false)
 
-    result.map(_.fields("start")) shouldBe activations.map(_.summaryAsJson.fields("start")).drop(5)
+    result.map(getJsField(_, "value", "start")) shouldBe activations.map(_.summaryAsJson.fields("start")).drop(5)
   }
 
   it should "support limiting results" in {
@@ -124,7 +174,7 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
       limit = 5,
       descending = false)
 
-    result.map(_.fields("start")) shouldBe activations.map(_.summaryAsJson.fields("start")).take(5)
+    result.map(getJsField(_, "value", "start")) shouldBe activations.map(_.summaryAsJson.fields("start")).take(5)
   }
 
   it should "support including complete docs" in {
@@ -142,7 +192,7 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
       descending = false)
 
     //Drop the _rev field as activations do not have that field
-    result.map(js => JsObject(js.fields - "_rev")) shouldBe activations.map(_.toDocumentRecord)
+    result.map(js => JsObject(getJsObject(js, "doc").fields - "_rev")) shouldBe activations.map(_.toDocumentRecord)
   }
 
   private def query[A <: WhiskEntity](
@@ -174,4 +224,15 @@ class MongoDbQueryTest extends FlatSpec with ArtifactStoreHelper with MongoSuppo
       Instant.ofEpochMilli(start + 1000))
   }
 
+  private def dropRev(js: JsObject): JsObject = {
+    JsObject(js.fields - "_rev")
+  }
+
+  private def getJsObject(js: JsObject, fields: String*): JsObject = {
+    JsHelpers.getFieldPath(js, fields: _*).get.asJsObject
+  }
+
+  private def getJsField(js: JsObject, subObject: String, fieldName: String): JsValue = {
+    js.fields(subObject).asJsObject().fields(fieldName)
+  }
 }

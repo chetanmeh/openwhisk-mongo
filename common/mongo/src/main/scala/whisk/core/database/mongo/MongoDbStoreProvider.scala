@@ -58,7 +58,7 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
     entityType.runtimeClass match {
       case x if x == classOf[WhiskEntity]     => (WhisksHandler, WhisksViewMapper)
       case x if x == classOf[WhiskActivation] => (ActivationHandler, ActivationViewMapper)
-      case x if x == classOf[WhiskAuth]       => (DefaultHandler, SubjectViewMapper)
+      case x if x == classOf[WhiskAuth]       => (SubjectHandler, SubjectViewMapper)
     }
   }
 }

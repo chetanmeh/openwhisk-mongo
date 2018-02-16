@@ -179,7 +179,9 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
     WhisksHandler.fieldsRequiredForView("foo", "triggers") shouldBe
       Set("namespace", "name", "version", "publish", "annotations", "updated")
 
-    WhisksHandler.fieldsRequiredForView("foo", "unknown") shouldBe Set()
+    intercept[UnsupportedView] {
+      WhisksHandler.fieldsRequiredForView("foo", "unknown") shouldBe Set()
+    }
   }
 
   behavior of "ActivationHandler computeFields"
@@ -368,5 +370,9 @@ class DocumentHandlerTest extends FlatSpec with Matchers {
         "response.statusCode")
   }
 
-  ActivationHandler.fieldsRequiredForView("foo", "unknown") shouldBe Set()
+  it should "throw UnsupportedView exception" in {
+    intercept[UnsupportedView] {
+      ActivationHandler.fieldsRequiredForView("foo", "unknown")
+    }
+  }
 }

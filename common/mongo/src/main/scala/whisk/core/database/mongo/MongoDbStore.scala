@@ -262,10 +262,16 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
       .toFuture()
       .map { docs =>
         docs.map { d =>
-          if (includeDocs) toWhiskJsonDoc(d) else toJsObject(d).fields("_data").asJsObject
+          if (includeDocs) toWhiskJsonDoc(d)
+          else {
+            //For view only case also include _id in addition to fields from view
+            val js = toJsObject(d)
+            JsObject(js.fields("_data").asJsObject.fields + ("_id" -> js.fields("_id")))
+          }
         }
       }
       .map(_.toList)
+      .map(documentHandler.transformViewResult(ddoc, viewName, startKey, endKey, includeDocs, _))
 
     reportFailure(
       f,
