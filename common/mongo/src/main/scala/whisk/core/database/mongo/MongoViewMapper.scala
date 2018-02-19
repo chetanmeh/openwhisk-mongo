@@ -87,6 +87,14 @@ private object WhisksViewMapper extends MongoViewMapper {
 
   override def filter(ddoc: String, view: String, startKey: List[Any], endKey: List[Any]): Bson = {
     checkKeys(startKey, endKey)
+    view match {
+      case "all" => listAllInNamespace(ddoc, view, startKey, endKey)
+      case _     => listCollectionInNamespace(ddoc, view, startKey, endKey)
+    }
+  }
+
+  private def listCollectionInNamespace(ddoc: String, view: String, startKey: List[Any], endKey: List[Any]): Bson = {
+
     //endKey.length == startKey.length || endKey.length = startKey.length + 1
     //endKey can be numeric or string == TOP
 
@@ -118,9 +126,20 @@ private object WhisksViewMapper extends MongoViewMapper {
     filter
   }
 
+  private def listAllInNamespace(ddoc: String, view: String, startKey: List[Any], endKey: List[Any]): Bson = {
+    val matchRootNS = equal(ROOT_NS, startKey.head)
+    val filter = (startKey, endKey) match {
+      case (ns :: Nil, _ :: `TOP` :: Nil) =>
+        and(exists(TYPE), matchRootNS)
+      case _ => throw UnsupportedQueryKeys(s"$ddoc/$view -> ($startKey, $endKey)")
+    }
+    filter
+  }
+
   override def sort(ddoc: String, view: String, descending: Boolean): Option[Bson] = {
     view match {
-      case "actions" | "rules" | "triggers" | "packages" | "packages-public" if ddoc.startsWith("whisks") =>
+      case "actions" | "rules" | "triggers" | "packages" | "packages-public" | "all"
+          if ddoc.startsWith("whisks") || ddoc.startsWith("all-whisks") =>
         val sort = if (descending) Sorts.descending(UPDATED) else Sorts.ascending(UPDATED)
         Some(sort)
       case _ => throw UnsupportedView(s"$ddoc/$view")

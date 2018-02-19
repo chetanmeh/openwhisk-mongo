@@ -156,9 +156,17 @@ class MongoViewMapperTests extends FlatSpec with Matchers with OptionValues {
     }
   }
 
+  it should "match all entities in namespace" in {
+    WhisksViewMapper.filter("whisks.v2.1.0", "all", List("ns1"), List("ns1", TOP)).toDoc shouldBe
+      and(exists("_data.entityType"), meq("_data._computed.rootns", "ns1")).toDoc
+  }
+
   it should "throw UnsupportedQueryKeys for unknown keys" in {
     intercept[UnsupportedQueryKeys] {
       WhisksViewMapper.filter("whisks.v2.1.0", "actions", List("ns1"), List("ns1", "foo"))
+    }
+    intercept[UnsupportedQueryKeys] {
+      WhisksViewMapper.filter("whisks.v2.1.0", "all", List("ns1"), List("ns1", "foo"))
     }
   }
 

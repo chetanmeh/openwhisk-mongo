@@ -21,6 +21,7 @@ import org.junit.runner.RunWith
 import org.scalatest.Suites
 import org.scalatest.junit.JUnitRunner
 import whisk.core.entity.test.DatastoreTests
+import whisk.core.entity.test.ViewTests
 
 @RunWith(classOf[JUnitRunner])
-class OpenWhiskTests extends Suites(new DatastoreTests)
+class OpenWhiskTests extends Suites(new DatastoreTests, new ViewTests)

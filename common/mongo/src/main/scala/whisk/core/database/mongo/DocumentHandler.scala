@@ -153,8 +153,10 @@ object WhisksHandler extends DocumentHandler {
   private val actionFields = commonFields ++ Set("limits", "exec.binary")
   private val packageFields = commonFields ++ Set("binding")
   private val packagePublicFields = commonFields
-  private val ruleFields = Set("_id") //For rule view is infact not called
+  private val ruleFields = commonFields
   private val triggerFields = commonFields
+  private val allFields = commonFields ++ actionFields ++ packageFields ++ packagePublicFields ++ ruleFields ++ triggerFields ++ Seq(
+    "entityType")
 
   override def computedFields(js: JsObject): JsObject = {
     js.fields.get("namespace") match {
@@ -172,6 +174,7 @@ object WhisksHandler extends DocumentHandler {
     case "packages-public" => packagePublicFields
     case "rules"           => ruleFields
     case "triggers"        => triggerFields
+    case "all"             => allFields
     case _                 => throw UnsupportedView(s"$ddoc/$view")
   }
 
@@ -179,8 +182,9 @@ object WhisksHandler extends DocumentHandler {
     case "actions"         => computeActionView(js)
     case "packages"        => computePackageView(js)
     case "packages-public" => computePublicPackageView(js)
-    case "rules"           => JsObject(js.fields.filterKeys(ruleFields))
+    case "rules"           => computeRulesView(js)
     case "triggers"        => computeTriggersView(js)
+    case "all"             => computeAllView(js)
     case _                 => throw UnsupportedView(s"$ddoc/$view")
   }
 
@@ -200,6 +204,10 @@ object WhisksHandler extends DocumentHandler {
     JsObject(js.fields.filterKeys(commonFields) + ("binding" -> JsFalse))
   }
 
+  private def computeRulesView(js: JsObject) = {
+    JsObject(js.fields.filterKeys(ruleFields))
+  }
+
   private def computePackageView(js: JsObject): JsObject = {
     val common = js.fields.filterKeys(commonFields)
     val binding = js.fields.get("binding") match {
@@ -213,5 +221,16 @@ object WhisksHandler extends DocumentHandler {
     val base = js.fields.filterKeys(commonFields ++ Set("limits"))
     val exec_binary = JsHelpers.getFieldPath(js, "exec", "binary")
     JsObject(base + ("exec" -> JsObject("binary" -> exec_binary.getOrElse(JsFalse))))
+  }
+
+  private def computeAllView(js: JsObject): JsObject = {
+    val collection = js.fields("entityType").convertTo[String]
+    val computed = collection match {
+      case "action"  => computeActionView(js)
+      case "package" => computePackageView(js)
+      case "rule"    => computeRulesView(js)
+      case "trigger" => computeTriggersView(js)
+    }
+    JsObject(computed.fields + ("collection" -> JsString(collection)))
   }
 }
