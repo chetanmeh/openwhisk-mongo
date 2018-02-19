@@ -160,7 +160,8 @@ object WhisksHandler extends DocumentHandler {
     js.fields.get("namespace") match {
       case Some(JsString(namespace)) =>
         val ns = namespace.split(PATHSEP)
-        if (ns.length > 1) JsObject((ROOT_NS, JsString(ns(0)))) else JsObject.empty
+        val rootNS = if (ns.length > 1) ns(0) else namespace
+        JsObject((ROOT_NS, JsString(rootNS)))
       case _ => JsObject.empty
     }
   }

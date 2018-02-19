@@ -38,9 +38,9 @@ class DocumentHandlerTests extends FlatSpec with Matchers {
     WhisksHandler.computedFields(JsObject()) shouldBe JsObject.empty
   }
 
-  it should "return empty object when namespace is simple name" in {
-    WhisksHandler.computedFields(JsObject(("namespace", JsString("foo")))) shouldBe JsObject.empty
-    WhisksHandler.computedFields(newRule("foo").toDocumentRecord) shouldBe JsObject.empty
+  it should "return JsObject when namespace is simple name" in {
+    WhisksHandler.computedFields(JsObject(("namespace", JsString("foo")))) shouldBe JsObject((ROOT_NS, JsString("foo")))
+    WhisksHandler.computedFields(newRule("foo").toDocumentRecord) shouldBe JsObject((ROOT_NS, JsString("foo")))
   }
 
   it should "return JsObject when namespace is path" in {
