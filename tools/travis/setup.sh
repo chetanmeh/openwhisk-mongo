@@ -5,8 +5,7 @@ HOMEDIR="$SCRIPTDIR/../../../"
 cd $HOMEDIR
 
 # shallow clone OpenWhisk repo.
-# TODO - Switch to apache master once classtag change is merged
-git clone --depth 1 -b artifactstore-classtag --single-branch https://github.com/chetanmeh/incubator-openwhisk.git openwhisk
+git clone --depth 1 https://github.com/apache/incubator-openwhisk.git openwhisk
 
 cd openwhisk
 ./tools/travis/setup.sh
