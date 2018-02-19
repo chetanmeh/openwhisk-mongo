@@ -47,6 +47,7 @@ import org.mongodb.scala._
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.FindOneAndUpdateOptions
 import org.mongodb.scala.model.FindOneAndDeleteOptions
+import org.mongodb.scala.model.CountOptions
 import org.mongodb.scala.model.Updates._
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model.Projections._
@@ -310,7 +311,23 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
                                      endKey: List[Any],
                                      skip: Int,
                                      stale: StaleParameter)(implicit transid: TransactionId): Future[Long] = {
-    Future.failed(new Exception()) //FIXME
+    val Array(ddoc, viewName) = table.split("/")
+    val start = transid.started(this, LoggingMarkers.DATABASE_QUERY, s"[COUNT] '$collName' searching '$table")
+    val f = coll
+      .count(
+        viewMapper.filter(ddoc, viewName, startKey, endKey),
+        CountOptions()
+          .skip(skip))
+      .head()
+
+    f.onSuccess({
+      case count => transid.finished(this, start, s"[COUNT] '$collName' completed: count $count")
+    })
+
+    reportFailure(
+      f,
+      failure =>
+        transid.failed(this, start, s"[COUNT] '$collName' internal error, failure:'${failure.getMessage}'", ErrorLevel))
   }
 
   override protected[core] def attach(

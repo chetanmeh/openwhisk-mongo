@@ -214,6 +214,52 @@ class MongoDbQueryTests extends FlatSpec with ArtifactStoreHelper with MongoSupp
     Await.result(f, dbOpTimeout)
   }
 
+  behavior of "MongoDbStore count"
+
+  it should "should match all created activations" in {
+    implicit val tid = transid()
+
+    val ns = aname()
+    val activations = (1000 until 1100 by 10).map(newActivation(ns.name, "testact", _))
+    activations foreach (put(activationStore, _))
+
+    val result = count[WhiskActivation](
+      activationStore,
+      "whisks-filters.v2.1.0/activations",
+      List(s"${ns.name}/testact", 0),
+      List(s"${ns.name}/testact", TOP, TOP))
+
+    result shouldBe 10
+  }
+
+  it should "should count with skip" in {
+    implicit val tid = transid()
+
+    val ns = aname()
+    val activations = (1000 until 1100 by 10).map(newActivation(ns.name, "testact", _))
+    activations foreach (put(activationStore, _))
+
+    val result = count[WhiskActivation](
+      activationStore,
+      "whisks-filters.v2.1.0/activations",
+      List(s"${ns.name}/testact", 0),
+      List(s"${ns.name}/testact", TOP, TOP),
+      skip = 4)
+
+    result shouldBe 10 - 4
+  }
+
+  private def count[A <: WhiskEntity](
+    db: ArtifactStore[A],
+    table: String,
+    startKey: List[Any],
+    endKey: List[Any],
+    skip: Int = 0,
+    stale: StaleParameter = StaleParameter.No)(implicit transid: TransactionId): Long = {
+    val f = db.count(table, startKey, endKey, skip, stale)
+    Await.result(f, dbOpTimeout)
+  }
+
   private def newAction(ns: EntityPath): WhiskAction = {
     WhiskAction(ns1, aname(), exec)
   }
@@ -265,7 +311,6 @@ class MongoDbQueryTests extends FlatSpec with ArtifactStoreHelper with MongoSupp
     i.subject shouldBe subs(0).subject
     i.limits.invocationsPerMinute shouldBe Some(7)
     i.limits.firesPerMinute shouldBe Some(31)
-
   }
 
   private def dropRev(js: JsObject): JsObject = {
