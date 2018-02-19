@@ -37,17 +37,7 @@ trait DocumentHandler {
                           startKey: List[Any],
                           endKey: List[Any],
                           includeDocs: Boolean,
-                          result: List[JsObject]): List[JsObject] = {
-
-    result.map(transformViewResult(ddoc, view, startKey, endKey, includeDocs, _))
-  }
-
-  protected def transformViewResult(ddoc: String,
-                                    view: String,
-                                    startKey: List[Any],
-                                    endKey: List[Any],
-                                    includeDocs: Boolean,
-                                    js: JsObject): JsObject = {
+                          js: JsObject): JsObject = {
     val result = JsObject(
       "id" -> js.fields("_id"),
       "key" -> createKey(ddoc, view, startKey, js),
