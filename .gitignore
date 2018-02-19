@@ -1,5 +1,5 @@
 # Whisk
-whisk.properties
+#whisk.properties
 default.props
 
 .ant-targets-build.xml
