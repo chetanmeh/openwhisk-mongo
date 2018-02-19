@@ -272,6 +272,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
       }
       .map(_.map(js => documentHandler.transformViewResult(ddoc, viewName, startKey, endKey, includeDocs, js)))
       .map(_.toList)
+      .flatMap(Future.sequence(_))
 
     reportFailure(
       f,

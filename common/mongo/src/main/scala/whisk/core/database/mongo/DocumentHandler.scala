@@ -22,6 +22,8 @@ import spray.json.DefaultJsonProtocol._
 import whisk.core.entity.EntityPath.PATHSEP
 import whisk.utils.JsHelpers
 
+import scala.concurrent.Future
+
 trait DocumentHandler {
 
   /**
@@ -37,13 +39,14 @@ trait DocumentHandler {
                           startKey: List[Any],
                           endKey: List[Any],
                           includeDocs: Boolean,
-                          js: JsObject): JsObject = {
-    val result = JsObject(
+                          js: JsObject): Future[JsObject] = {
+    val viewResult = JsObject(
       "id" -> js.fields("_id"),
       "key" -> createKey(ddoc, view, startKey, js),
       "value" -> computeView(ddoc, view, js))
 
-    if (includeDocs) JsObject(result.fields + ("doc" -> js)) else result
+    val result = if (includeDocs) JsObject(viewResult.fields + ("doc" -> js)) else viewResult
+    Future.successful(result)
   }
 
   /**
