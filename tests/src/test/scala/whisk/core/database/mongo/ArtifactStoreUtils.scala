@@ -28,4 +28,8 @@ trait ArtifactStoreUtils {
 
   def get(id: String, dbName: String)(implicit ec: ExecutionContext): JsObject = ???
 
+  def put(id: String, json: JsObject, dbName: String)(implicit ec: ExecutionContext): Unit = ???
+
+  def del(id: String, dbName: String)(implicit ec: ExecutionContext): Unit = ???
+
 }

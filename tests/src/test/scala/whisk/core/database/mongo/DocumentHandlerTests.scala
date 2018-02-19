@@ -23,6 +23,7 @@ import org.scalatest.Matchers
 import org.scalatest.junit.JUnitRunner
 import spray.json._
 import DefaultJsonProtocol._
+import whisk.core.database.mongo.SubjectHandler.SubjectView
 import whisk.core.database.mongo.WhisksHandler.ROOT_NS
 import whisk.core.entity.WhiskRule
 import whisk.core.entity.EntityPath
@@ -395,5 +396,73 @@ class DocumentHandlerTests extends FlatSpec with Matchers {
     intercept[UnsupportedView] {
       ActivationHandler.fieldsRequiredForView("foo", "unknown")
     }
+  }
+
+  behavior of "SubjectHandler computeSubjectView"
+
+  it should "match subject with namespace" in {
+    val js = """{
+               |  "subject": "foo",
+               |  "uuid": "u1",
+               |  "key" : "k1"
+               |}""".stripMargin.parseJson.asJsObject
+    SubjectHandler.computeSubjectView("subjects", "identities", List("foo"), js) shouldBe SubjectView("foo", "u1", "k1")
+  }
+
+  it should "match subject with child namespace" in {
+    val js = """{
+               |  "subject": "bar",
+               |  "uuid": "u1",
+               |  "key" : "k1",
+               |  "namespaces" : [
+               |    {"name": "foo", "uuid":"u2", "key":"k2"}
+               |  ]
+               |}""".stripMargin.parseJson.asJsObject
+    SubjectHandler.computeSubjectView("subjects", "identities", List("foo"), js) shouldBe
+      SubjectView("foo", "u2", "k2", matchInNamespace = true)
+  }
+
+  it should "match subject with uuid and key" in {
+    val js = """{
+               |  "subject": "foo",
+               |  "uuid": "u1",
+               |  "key" : "k1"
+               |}""".stripMargin.parseJson.asJsObject
+    SubjectHandler.computeSubjectView("subjects", "identities", List("u1", "k1"), js) shouldBe
+      SubjectView("foo", "u1", "k1")
+  }
+
+  it should "match subject with child namespace with uuid and key" in {
+    val js = """{
+               |  "subject": "bar",
+               |  "uuid": "u1",
+               |  "key" : "k1",
+               |  "namespaces" : [
+               |    {"name": "foo", "uuid":"u2", "key":"k2"}
+               |  ]
+               |}""".stripMargin.parseJson.asJsObject
+    SubjectHandler.computeSubjectView("subjects", "identities", List("u2", "k2"), js) shouldBe
+      SubjectView("foo", "u2", "k2", matchInNamespace = true)
+  }
+
+  it should "throw exception when subject is blocked" in {
+    val js = """{
+               |  "subject": "foo",
+               |  "uuid": "u1",
+               |  "key" : "k1",
+               |  "blocked" : true
+               |}""".stripMargin.parseJson.asJsObject
+    an[IllegalArgumentException] should be thrownBy
+      SubjectHandler.computeSubjectView("subjects", "identities", List("foo"), js)
+  }
+
+  it should "throw exception when namespace match but key missing" in {
+    val js = """{
+               |  "subject": "foo",
+               |  "uuid": "u1",
+               |  "blocked" : true
+               |}""".stripMargin.parseJson.asJsObject
+    an[IllegalArgumentException] should be thrownBy
+      SubjectHandler.computeSubjectView("subjects", "identities", List("foo"), js)
   }
 }

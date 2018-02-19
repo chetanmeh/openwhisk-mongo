@@ -36,6 +36,7 @@ import whisk.core.entity.WhiskEntity
 import whisk.core.entity.WhiskActivation
 import whisk.core.entity.WhiskAuth
 
+import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 trait ArtifactStoreHelper
@@ -56,6 +57,8 @@ trait ArtifactStoreHelper
   lazy val authStore = WhiskAuthStore.datastore(config)
   lazy val entityStore = WhiskEntityStore.datastore(config)
   lazy val activationStore = WhiskActivationStore.datastore(config)
+
+  val rawDocsToDelete = ListBuffer[(String, String)]() //id -> db
 
   var debug: Boolean = false
 
@@ -78,15 +81,30 @@ trait ArtifactStoreHelper
   after {
     if (debug) println(logLines.mkString("\n"))
     cleanup()
+    cleanupRawDoc()
   }
 
-  protected def get[D <: DocumentSerializer: ClassTag](id: String): JsObject = {
+  protected def get[D <: DocumentSerializer: ClassTag](id: String): JsObject = get(id, getDbName)
+
+  protected def putRaw[D <: DocumentSerializer: ClassTag](id: String, json: JsObject): Unit = {
+    val dbName = getDbName
+    put(id, json, getDbName)
+    rawDocsToDelete += ((id, dbName))
+  }
+
+  protected def delRaw[D <: DocumentSerializer: ClassTag](id: String, json: JsObject): Unit = del(id, getDbName)
+
+  private def getDbName[D <: DocumentSerializer: ClassTag] = {
     val dbName = implicitly[ClassTag[D]].runtimeClass match {
       case x if x == classOf[WhiskEntity]     => config.dbWhisk
       case x if x == classOf[WhiskActivation] => config.dbActivations
       case x if x == classOf[WhiskAuth]       => config.dbAuths
     }
-    get(id, dbName)
+    dbName
+  }
+
+  def cleanupRawDoc(): Unit = {
+    rawDocsToDelete.foreach(e => del(e._1, e._2))
   }
 
   private def loggerOf(clazz: String) = {

@@ -40,6 +40,10 @@ import whisk.core.entity.WhiskActivation
 import whisk.core.entity.EntityName
 import whisk.core.entity.ActivationId
 import whisk.core.entity.WhiskEntity
+import whisk.core.entity.WhiskAuth
+import whisk.core.entity.WhiskNamespace
+import whisk.core.entity.AuthKey
+import whisk.core.entity.Identity
 import whisk.core.entity.WhiskEntityQueries.TOP
 import whisk.utils.JsHelpers
 
@@ -222,6 +226,46 @@ class MongoDbQueryTests extends FlatSpec with ArtifactStoreHelper with MongoSupp
       ActivationId(),
       Instant.ofEpochMilli(start),
       Instant.ofEpochMilli(start + 1000))
+  }
+
+  behavior of "MongoDbStore query Subjects"
+
+  it should "find subject by namespace" in {
+    implicit val tid = transid()
+    val ak1 = AuthKey()
+    val ak2 = AuthKey()
+    val subs = Array(
+      WhiskAuth(Subject(), Set(WhiskNamespace(EntityName("sub_ns1"), ak1))),
+      WhiskAuth(Subject(), Set(WhiskNamespace(EntityName("sub_ns2"), ak2))))
+    subs foreach (put(authStore, _))
+
+    val f = Identity.get(authStore, EntityName("sub_ns1"))
+    Await.result(f, dbOpTimeout).subject shouldBe subs(0).subject
+
+    val f2 = Identity.get(authStore, ak2)
+    Await.result(f2, dbOpTimeout).subject shouldBe subs(1).subject
+  }
+
+  it should "find subject by namespace with limits" in {
+    implicit val tid = transid()
+    val ak1 = AuthKey()
+    val ak2 = AuthKey()
+    val name1 = aname()
+    val name2 = aname()
+    val subs = Array(
+      WhiskAuth(Subject(), Set(WhiskNamespace(name1, ak1))),
+      WhiskAuth(Subject(), Set(WhiskNamespace(name2, ak2))))
+    subs foreach (put(authStore, _))
+
+    val limits = JsObject("_data" -> JsObject("invocationsPerMinute" -> JsNumber(7), "firesPerMinute" -> JsNumber(31)))
+    putRaw[WhiskAuth](s"${name1.name}/limits", limits)
+
+    val f = Identity.get(authStore, name1)
+    val i = Await.result(f, dbOpTimeout)
+    i.subject shouldBe subs(0).subject
+    i.limits.invocationsPerMinute shouldBe Some(7)
+    i.limits.firesPerMinute shouldBe Some(31)
+
   }
 
   private def dropRev(js: JsObject): JsObject = {

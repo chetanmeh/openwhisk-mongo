@@ -43,4 +43,23 @@ trait MongoSupport extends BeforeAndAfterAll with ArtifactStoreUtils {
       doc.toJson().parseJson.asJsObject
     }, 15 seconds)
   }
+
+  override def put(id: String, json: JsObject, dbName: String)(implicit ec: ExecutionContext): Unit = {
+    val jsonWithId = JsObject(json.fields + ("_id" -> JsString(id)))
+    val f = mongoClient
+      .getDatabase(mongoConfig.db)
+      .getCollection[Document](dbName)
+      .insertOne(Document(jsonWithId.compactPrint))
+      .head()
+    Await.result(f, 15 seconds)
+  }
+
+  override def del(id: String, dbName: String)(implicit ec: ExecutionContext): Unit = {
+    val f = mongoClient
+      .getDatabase(mongoConfig.db)
+      .getCollection[Document](dbName)
+      .deleteOne(equal("_id", id))
+      .head()
+    Await.result(f, 15 seconds)
+  }
 }

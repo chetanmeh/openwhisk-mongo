@@ -80,7 +80,8 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
   materializer: ActorMaterializer,
   docReader: DocumentReader)
     extends ArtifactStore[DocumentAbstraction]
-    with DefaultJsonProtocol {
+    with DefaultJsonProtocol
+    with DocumentProvider {
 
   override protected[core] implicit val executionContext: ExecutionContext = system.dispatcher
 
@@ -225,6 +226,26 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
           ErrorLevel))
   }
 
+  override protected[database] def get(id: String)(implicit transid: TransactionId): Future[JsObject] = {
+    val start = transid.started(this, LoggingMarkers.DATABASE_GET, s"[GET] '$collName' finding document: '$id'")
+    val f = coll
+      .find(equal(_id, id))
+      .head()
+      .map {
+        case d: Document =>
+          toWhiskJsonDoc(d)
+        case null => JsObject.empty
+      }
+    reportFailure(
+      f,
+      failure =>
+        transid.failed(
+          this,
+          start,
+          s"[GET] '$collName' internal error, doc: '$id', failure: '${failure.getMessage}'",
+          ErrorLevel))
+  }
+
   override protected[core] def query(table: String,
                                      startKey: List[Any],
                                      endKey: List[Any],
@@ -251,8 +272,10 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
       find.limit(limit)
     }
 
+    val realIncludeDocs = includeDocs | documentHandler.shouldAlwaysIncludeDocs(ddoc, viewName)
+
     //If includeDocs then projection is not used
-    if (!includeDocs) {
+    if (!realIncludeDocs) {
       //Prepend the _data field name to match the schema in Mongo
       val projectedFields = documentHandler.fieldsRequiredForView(ddoc, viewName).toSeq.map(pf => s"${_data}.$pf")
       find.projection(include(projectedFields: _*))
@@ -262,7 +285,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
       .toFuture()
       .map { docs =>
         docs.map { d =>
-          if (includeDocs) toWhiskJsonDoc(d)
+          if (realIncludeDocs) toWhiskJsonDoc(d)
           else {
             //For view only case also include _id in addition to fields from view
             val js = toJsObject(d)
@@ -270,7 +293,8 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
           }
         }
       }
-      .map(_.map(js => documentHandler.transformViewResult(ddoc, viewName, startKey, endKey, includeDocs, js)))
+      .map(_.map(js =>
+        documentHandler.transformViewResult(ddoc, viewName, startKey, endKey, realIncludeDocs, js, MongoDbStore.this)))
       .map(_.toList)
       .flatMap(Future.sequence(_))
 
@@ -332,7 +356,10 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
 
   private def toWhiskJsonDoc(doc: Document): JsObject = {
     val js = toJsObject(doc)
-    val rev = js.fields(_rev).convertTo[Int].toString
+    val rev = js.fields.get(_rev) match {
+      case Some(JsNumber(n)) => n.toString()
+      case _                 => "0"
+    }
     val wskJson = js.fields(_data).asJsObject.fields + (_id -> js.fields(_id)) + (_rev -> JsString(rev)) - _computed
     JsObject(wskJson)
   }
