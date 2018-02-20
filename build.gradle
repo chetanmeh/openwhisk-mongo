@@ -12,7 +12,7 @@ plugins {
 }
 
 buildScan {
-    termsOfServiceUrl = 'https://gradle.com/legal/terms-of-service'
+    termsOfServiceUrl = 'https://gradle.com/terms-of-service'
     termsOfServiceAgree = 'yes'
     publishAlwaysIf(System.getenv('CI') != null)
 }
