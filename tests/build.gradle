@@ -9,11 +9,18 @@ repositories {
     mavenLocal()
 }
 
+configurations {
+    integrationTest {
+        transitive = false
+    }
+}
+
 dependencies {
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:tests"
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:test-sources"
     compile project(':common:mongo')
     scoverage gradle.scoverage.deps
+    integrationTest "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:tests"
 }
 
 tasks.withType(ScalaCompile) {
@@ -29,6 +36,24 @@ tasks.withType(Test) {
         exceptionFormat = 'full'
     }
     outputs.upToDateWhen { false } // force tests to run every time
+}
+
+task unzipTests(type: Copy){
+    from zipTree(configurations.integrationTest.singleFile)
+    into "build/openwhisk-tests"
+}
+
+task testLean(type: Test, dependsOn: unzipTests) {
+    testClassesDirs = sourceSets.test.output.classesDirs + files('build/openwhisk-tests')
+    include "whisk/**"
+    exclude "whisk/system/**"
+    exclude '**/*Swift*'
+    exclude '**/*Python*'
+    exclude '**/*Java*'
+    exclude '**/*ThrottleTests*'
+    exclude '**/MaxActionDurationTests*'
+    exclude '**/*ApiGwTests*'
+    exclude '**/*Cli*'
 }
 
 afterEvaluate {
