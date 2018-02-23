@@ -232,7 +232,7 @@ class MongoDbQueryTests extends FlatSpec with ArtifactStoreHelper with MongoSupp
     result shouldBe 10
   }
 
-  it should "should count with skip" in {
+  it should "count with skip" in {
     implicit val tid = transid()
 
     val ns = aname()
