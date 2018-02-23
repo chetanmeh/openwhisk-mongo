@@ -70,7 +70,8 @@ object MongoDbStore {
   val _computed = "_computed"
 }
 
-class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfig,
+class MongoDbStore[DocumentAbstraction <: DocumentSerializer](clientRef: ReferenceCounted[MongoClient]#CountedReference,
+                                                              config: MongoConfig,
                                                               collName: String,
                                                               documentHandler: DocumentHandler,
                                                               viewMapper: MongoViewMapper,
@@ -86,8 +87,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
 
   override protected[core] implicit val executionContext: ExecutionContext = system.dispatcher
 
-  //TODO Share MongoClient between stores
-  private val client: MongoClient = MongoClientHelper.createClient(config.uri)
+  private def client: MongoClient = clientRef.get
   private val coll: MongoCollection[Document] = client.getDatabase(config.db).getCollection[Document](collName)
 
   //TODO Index creation
@@ -344,8 +344,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](config: MongoConfi
   }
 
   override def shutdown(): Unit = {
-    //TODO Switch to ref count
-    client.close()
+    clientRef.close()
   }
 
   private def createFilter(doc: DocInfo): Bson = {

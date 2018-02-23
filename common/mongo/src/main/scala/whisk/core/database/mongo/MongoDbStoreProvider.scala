@@ -19,6 +19,7 @@ package whisk.core.database.mongo
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import org.mongodb.scala.MongoClient
 import spray.json.RootJsonFormat
 import whisk.common.Logging
 import whisk.core.WhiskConfig
@@ -40,6 +41,8 @@ object ConfigKeys {
 }
 
 object MongoDbStoreProvider extends ArtifactStoreProvider {
+  private var clientRef: ReferenceCounted[MongoClient] = _
+  private val mongoConfig = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
 
   override def makeStore[D <: DocumentSerializer: ClassTag](config: WhiskConfig,
                                                             name: WhiskConfig => String,
@@ -49,9 +52,9 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
     actorSystem: ActorSystem,
     logging: Logging,
     materializer: ActorMaterializer): ArtifactStore[D] = {
-    val mc = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
+
     val (handler, mapper) = handlerAndMapper(implicitly[ClassTag[D]])
-    new MongoDbStore[D](mc, name(config), handler, mapper, useBatching)
+    new MongoDbStore[D](getCountReference, mongoConfig, name(config), handler, mapper, useBatching)
   }
 
   private def handlerAndMapper[D](entityType: ClassTag[D]): (DocumentHandler, MongoViewMapper) = {
@@ -60,5 +63,12 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
       case x if x == classOf[WhiskActivation] => (ActivationHandler, ActivationViewMapper)
       case x if x == classOf[WhiskAuth]       => (SubjectHandler, SubjectViewMapper)
     }
+  }
+
+  private def getCountReference = synchronized {
+    if (clientRef == null || clientRef.isClosed) {
+      clientRef = new ReferenceCounted[MongoClient](MongoClientHelper.createClient(mongoConfig.uri))
+    }
+    clientRef.getReference
   }
 }
