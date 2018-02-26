@@ -12,6 +12,7 @@ repositories {
 dependencies {
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:tests"
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:test-sources"
+    testCompile "org.mockito:mockito-core:2.15.0"
     compile project(':common:mongo')
     scoverage gradle.scoverage.deps
 }

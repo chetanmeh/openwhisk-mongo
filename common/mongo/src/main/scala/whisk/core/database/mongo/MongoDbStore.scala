@@ -75,6 +75,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](clientRef: Referen
                                                               collName: String,
                                                               documentHandler: DocumentHandler,
                                                               viewMapper: MongoViewMapper,
+                                                              attachmentStore: AttachmentStore,
                                                               useBatching: Boolean = false)(
   implicit system: ActorSystem,
   val logging: Logging,
@@ -87,8 +88,7 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](clientRef: Referen
 
   override protected[core] implicit val executionContext: ExecutionContext = system.dispatcher
 
-  private def client: MongoClient = clientRef.get
-  private val coll: MongoCollection[Document] = client.getDatabase(config.db).getCollection[Document](collName)
+  private val coll: MongoCollection[Document] = clientRef.get.getDatabase(config.db).getCollection[Document](collName)
 
   //TODO Index creation
   private val _id = "_id"
@@ -335,12 +335,12 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](clientRef: Referen
     name: String,
     contentType: ContentType,
     docStream: Source[ByteString, _])(implicit transid: TransactionId): Future[DocInfo] = {
-    Future.failed(new Exception()) //FIXME
+    attachmentStore.attach(doc, name, contentType, docStream)
   }
 
   override protected[core] def readAttachment[T](doc: DocInfo, name: String, sink: Sink[ByteString, Future[T]])(
     implicit transid: TransactionId): Future[(ContentType, T)] = {
-    Future.failed(new Exception()) //FIXME
+    attachmentStore.readAttachment(doc, name, sink)
   }
 
   override def shutdown(): Unit = {
