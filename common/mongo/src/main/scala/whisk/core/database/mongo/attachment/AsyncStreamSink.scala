@@ -54,6 +54,7 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
       var writeCallback: AsyncCallback[Try[Int]] = _
       var closeCallback: AsyncCallback[Try[Completed]] = _
       var position: Int = _
+      var writeDone = Promise[Completed]
 
       setHandler(in, this)
 
@@ -66,12 +67,16 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
 
       override def onPush(): Unit = {
         buffers = grab(in).asByteBuffers.iterator
+        writeDone = Promise[Completed]
         writeNextBufferOrPull()
       }
 
       override def onUpstreamFinish(): Unit = {
         //Work done perform close
-        stream.close().head().onComplete(closeCallback.invoke)
+        //Using async "blessed" callback does not work at this stage so
+        // need to invoke as normal callback
+        //TODO Revisit this
+        writeDone.future.onComplete(_ => stream.close().head().onComplete(handleClose))
       }
 
       override def onUpstreamFailure(ex: Throwable): Unit = {
@@ -97,6 +102,7 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
         if (buffers.hasNext) {
           stream.write(buffers.next()).head().onComplete(writeCallback.invoke)
         } else {
+          writeDone.trySuccess(Completed())
           pull(in)
         }
       }
