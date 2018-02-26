@@ -25,7 +25,6 @@ import akka.stream.SinkShape
 import akka.stream.Inlet
 import akka.stream.Attributes
 import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Flow
 import akka.stream.stage.GraphStageWithMaterializedValue
 import akka.stream.stage.GraphStageLogic
 import akka.stream.stage.InHandler
@@ -53,6 +52,7 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
       handler =>
       var buffers: Iterator[ByteBuffer] = Iterator()
       var writeCallback: AsyncCallback[Try[Int]] = _
+      var closeCallback: AsyncCallback[Try[Completed]] = _
       var position: Int = _
 
       setHandler(in, this)
@@ -60,6 +60,7 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
       override def preStart(): Unit = {
         setKeepGoing(true)
         writeCallback = getAsyncCallback[Try[Int]](handleWriteResult)
+        closeCallback = getAsyncCallback[Try[Completed]](handleClose)
         pull(in)
       }
 
@@ -70,10 +71,7 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
 
       override def onUpstreamFinish(): Unit = {
         //Work done perform close
-        //callback does not work at this stage so register the close call directly
-        //as at this stage further no other interaction would happen with the sink
-        //stream.close().head().onComplete(closeCallback.invoke)
-        stream.close().head().onComplete(handleClose)
+        stream.close().head().onComplete(closeCallback.invoke)
       }
 
       override def onUpstreamFailure(ex: Throwable): Unit = {
