@@ -31,6 +31,7 @@ import akka.stream.testkit.TestSubscriber
 import akka.util.ByteString
 import common.WskActorSystem
 import org.apache.commons.io.IOUtils
+import org.junit.runner.RunWith
 import org.mongodb.scala.gridfs.helpers.AsyncStreamHelper
 import org.scalatest.Matchers
 import org.scalatest.FlatSpec
@@ -38,10 +39,12 @@ import org.scalatest.concurrent.ScalaFutures
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers._
 import org.scalatest.concurrent.IntegrationPatience
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.mockito.MockitoSugar
 
 import scala.util.Random
 
+@RunWith(classOf[JUnitRunner])
 class AsyncStreamGraphTests
     extends FlatSpec
     with Matchers
