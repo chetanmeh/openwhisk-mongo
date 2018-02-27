@@ -26,6 +26,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.StreamConverters
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Keep
+import akka.stream.scaladsl.Source
 import akka.stream.testkit.TestSubscriber
 import akka.util.ByteString
 import common.WskActorSystem
@@ -129,7 +130,20 @@ class AsyncStreamGraphTests
     outputStream.closed shouldBe true
   }
 
-  it should "onError with failure and return a failed IOResult when writing to failed stream" in pending
+  it should "onError with failure and return a failed IOResult when writing to failed stream" in {
+    val os = new ByteArrayOutputStream()
+    val asyncStream = AsyncStreamHelper.toAsyncOutputStream(os)
+
+    val sink = AsyncStreamSink(asyncStream)
+    val ioResult = Source(1 to 10)
+      .map { n ⇒
+        if (n == 7) throw new Error("bees!")
+        n
+      }
+      .map(ByteString(_))
+      .runWith(sink)
+    ioResult.futureValue.status.isFailure shouldBe true
+  }
 
   private def randomBytes(size: Int): Array[Byte] = {
     val arr = new Array[Byte](size)
