@@ -28,6 +28,7 @@ import whisk.core.database.ArtifactStore
 import whisk.core.database.DocumentSerializer
 import whisk.core.entity.DocumentReader
 import pureconfig._
+import whisk.core.database.mongo.attachment.GridFSAttachmentStore
 import whisk.core.entity.WhiskEntity
 import whisk.core.entity.WhiskActivation
 import whisk.core.entity.WhiskAuth
@@ -53,15 +54,23 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
     logging: Logging,
     materializer: ActorMaterializer): ArtifactStore[D] = {
 
-    val (handler, mapper) = handlerAndMapper(implicitly[ClassTag[D]])
-    new MongoDbStore[D](getCountReference, mongoConfig, name(config), handler, mapper, useBatching)
+    val ref = getCountReference
+    val (handler, mapper, attachmentStore) = handlerAndMapper(implicitly[ClassTag[D]], ref.get)
+
+    new MongoDbStore[D](ref, mongoConfig, name(config), handler, mapper, attachmentStore, useBatching)
   }
 
-  private def handlerAndMapper[D](entityType: ClassTag[D]): (DocumentHandler, MongoViewMapper) = {
+  private def handlerAndMapper[D](entityType: ClassTag[D], client: MongoClient)(
+    implicit actorSystem: ActorSystem,
+    logging: Logging,
+    materializer: ActorMaterializer): (DocumentHandler, MongoViewMapper, AttachmentStore) = {
+    val db = client.getDatabase(mongoConfig.db)
     entityType.runtimeClass match {
-      case x if x == classOf[WhiskEntity]     => (WhisksHandler, WhisksViewMapper)
-      case x if x == classOf[WhiskActivation] => (ActivationHandler, ActivationViewMapper)
-      case x if x == classOf[WhiskAuth]       => (SubjectHandler, SubjectViewMapper)
+      case x if x == classOf[WhiskEntity] => (WhisksHandler, WhisksViewMapper, new GridFSAttachmentStore(db, "whisks"))
+      case x if x == classOf[WhiskActivation] =>
+        (ActivationHandler, ActivationViewMapper, new GridFSAttachmentStore(db, "activations"))
+      case x if x == classOf[WhiskAuth] =>
+        (SubjectHandler, SubjectViewMapper, new GridFSAttachmentStore(db, "subjects"))
     }
   }
 
