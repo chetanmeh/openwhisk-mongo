@@ -59,6 +59,8 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
       setHandler(in, this)
 
       override def preStart(): Unit = {
+        //close operation is async and thus requires the stage to remain open
+        //even after all data is read
         setKeepGoing(true)
         writeCallback = getAsyncCallback[Try[Int]](handleWriteResult)
         closeCallback = getAsyncCallback[Try[Completed]](handleClose)
@@ -76,6 +78,12 @@ class AsyncStreamSink(stream: AsyncOutputStream)(implicit ec: ExecutionContext)
         //Using async "blessed" callback does not work at this stage so
         // need to invoke as normal callback
         //TODO Revisit this
+
+        //write of ByteBuffers from ByteString is an async operation. For last push
+        //the write operation may involve multiple async callbacks and by that time
+        //onUpstreamFinish may get invoked. So to ensure that close operation is performed
+        //"after" the last push writes are done we rely on writeDone promise
+        //and schedule the close on its completion
         writeDone.future.onComplete(_ => stream.close().head().onComplete(handleClose))
       }
 
