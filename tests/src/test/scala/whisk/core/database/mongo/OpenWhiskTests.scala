@@ -20,8 +20,9 @@ package whisk.core.database.mongo
 import org.junit.runner.RunWith
 import org.scalatest.Suites
 import org.scalatest.junit.JUnitRunner
+import whisk.core.controller.test.ActionsApiTests
 import whisk.core.entity.test.DatastoreTests
 import whisk.core.entity.test.ViewTests
 
 @RunWith(classOf[JUnitRunner])
-class OpenWhiskTests extends Suites(new DatastoreTests, new ViewTests)
+class OpenWhiskTests extends Suites(new DatastoreTests, new ViewTests, new ActionsApiTests)
