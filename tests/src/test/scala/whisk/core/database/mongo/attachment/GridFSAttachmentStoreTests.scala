@@ -42,8 +42,6 @@ class GridFSAttachmentStoreTests
     with IntegrationPatience
     with MongoSupport {
 
-  debug = true
-
   behavior of "Attachments"
 
   it should "add some binary content" in {
