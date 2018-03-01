@@ -3,11 +3,7 @@ plugins {
 }
 
 apply plugin: 'scala'
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
+project.archivesBaseName = "openwhisk-mongo"
 
 dependencies {
     compile "org.apache.openwhisk:openwhisk-common:${gradle.openwhisk.version}"

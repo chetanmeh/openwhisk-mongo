@@ -20,4 +20,9 @@ buildScan {
 subprojects {
     apply plugin: 'scalafmt'
     scalafmt.configFilePath = gradle.scalafmt.config
+
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
 }

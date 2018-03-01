@@ -4,11 +4,6 @@ plugins {
 
 apply plugin: 'scala'
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-}
-
 dependencies {
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:tests"
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:test-sources"
