@@ -55,22 +55,23 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
     materializer: ActorMaterializer): ArtifactStore[D] = {
 
     val ref = getCountReference
-    val (handler, mapper, attachmentStore) = handlerAndMapper(implicitly[ClassTag[D]], ref.get)
+    val (collectionName, handler, mapper, attachmentStore) = handlerAndMapper(implicitly[ClassTag[D]], ref.get)
 
-    new MongoDbStore[D](ref, mongoConfig, name(config), handler, mapper, attachmentStore, useBatching)
+    new MongoDbStore[D](ref, mongoConfig, collectionName, handler, mapper, attachmentStore, useBatching)
   }
 
   private def handlerAndMapper[D](entityType: ClassTag[D], client: MongoClient)(
     implicit actorSystem: ActorSystem,
     logging: Logging,
-    materializer: ActorMaterializer): (DocumentHandler, MongoViewMapper, AttachmentStore) = {
+    materializer: ActorMaterializer): (String, DocumentHandler, MongoViewMapper, AttachmentStore) = {
     val db = client.getDatabase(mongoConfig.db)
     entityType.runtimeClass match {
-      case x if x == classOf[WhiskEntity] => (WhisksHandler, WhisksViewMapper, new GridFSAttachmentStore(db, "whisks"))
+      case x if x == classOf[WhiskEntity] =>
+        ("whisks", WhisksHandler, WhisksViewMapper, new GridFSAttachmentStore(db, "whisks"))
       case x if x == classOf[WhiskActivation] =>
-        (ActivationHandler, ActivationViewMapper, new GridFSAttachmentStore(db, "activations"))
+        ("activations", ActivationHandler, ActivationViewMapper, new GridFSAttachmentStore(db, "activations"))
       case x if x == classOf[WhiskAuth] =>
-        (SubjectHandler, SubjectViewMapper, new GridFSAttachmentStore(db, "subjects"))
+        ("subjects", SubjectHandler, SubjectViewMapper, new GridFSAttachmentStore(db, "subjects"))
     }
   }
 

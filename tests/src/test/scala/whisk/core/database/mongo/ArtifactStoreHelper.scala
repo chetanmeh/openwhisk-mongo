@@ -96,9 +96,9 @@ trait ArtifactStoreHelper
 
   private def getDbName[D <: DocumentSerializer: ClassTag] = {
     val dbName = implicitly[ClassTag[D]].runtimeClass match {
-      case x if x == classOf[WhiskEntity]     => config.dbWhisk
-      case x if x == classOf[WhiskActivation] => config.dbActivations
-      case x if x == classOf[WhiskAuth]       => config.dbAuths
+      case x if x == classOf[WhiskEntity]     => "whisks"
+      case x if x == classOf[WhiskActivation] => "activations"
+      case x if x == classOf[WhiskAuth]       => "subjects"
     }
     dbName
   }
