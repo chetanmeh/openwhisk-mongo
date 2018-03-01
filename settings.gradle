@@ -1,4 +1,7 @@
 include 'common:mongo'
+include 'core:controller-mongo'
+include 'core:invoker-mongo'
+
 include 'tools'
 include 'tests'
 
