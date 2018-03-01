@@ -1,8 +1,18 @@
+def owPath = System.getenv("OPENWHISK_HOME") ?: '../openwhisk'
+def owDirectory = new File(owPath)
+
+if (!owDirectory.exists()) {
+    throw new GradleScriptException("Environment variable OPENWHISK_HOME must point to a valid OpenWhisk build", null)
+}
+
+gradle.ext.owDirectory = owDirectory
+
 include 'common:mongo'
 include 'core:controller-mongo'
 include 'core:invoker-mongo'
 
 include 'tools'
+include 'tools:wskadmin'
 include 'tests'
 
 rootProject.name = 'openwhisk-mongo'

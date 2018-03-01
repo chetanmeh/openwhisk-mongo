@@ -12,6 +12,8 @@ GRADLE_PROJS_SKIP="-x :actionRuntimes:pythonAction:distDocker  -x :actionRuntime
 
 TERM=dumb ./gradlew install distDocker -PdockerImagePrefix=testing $GRADLE_PROJS_SKIP
 
+export OPENWHISK_HOME=$WHISKDIR
+
 cd $ROOTDIR
 TERM=dumb ./gradlew :tests:reportScoverage distDocker -PdockerImagePrefix=testing
 
