@@ -9,6 +9,44 @@
 This repository provides a [MongoDB][1] based [ArtifactStore][2] implementation for [Apache OpenWhisk][3]. It uses
 [MongoDB Scala Driver][8] for connecting to Mongo
 
+## Usage
+
+As its still in development you would need to perform some build steps locally
+
+    # Clone OpenWhisk
+    git clone --depth=1 https://github.com/apache/incubator-openwhisk.git openwhisk
+    
+    # Change directory to openwhisk and build
+    cd openwhisk
+    ./gradlew distDocker install
+    
+    # Export OPENWHISK_HOME
+    export OPENWHISK_HOME="/path/to/openwhisk-repo"
+    
+    # Clone this repo
+    git clone https://github.com/chetanmeh/openwhisk-mongo.git openwhisk-mongo
+    
+    # Change directory to checked out repo
+    cd openwhisk-mongo
+    ./gradlew distDocker 
+    
+    # Change to docker-compose
+    cd docker-compose
+    docker-compose --project-name openwhisk up
+    
+    # It would bring up the OpenWhisk setup locally
+    
+This should bring up the OpenWhisk setup with Controller and Invoker configured to use MongoDB
+as storage store. This setup does not have the nginx configured so we need to hit the controller directly
+Change the `~/.wskprops`
+
+    AUTH=789c46b1-71f6-4ed5-8c54-816aa4f8c502:abczO3xZCLrMN6v2BKK1dXYFpXlPkccOFqm12CdAsMgRU4VrNZ9lyGVCGuMDGIwP
+    APIHOST=http://localhost:8888
+    
+Further steps assume that `wsk` [CLI is configured on your setup][10]. Now try the steps [here][11] to see OpenWhisk in
+action
+  
+
 ## Storage Model
 
 OpenWhisk uses 3 databases in CouchDB to store subjects, whisks and activations. With MongoDB it would use a single 
@@ -98,3 +136,5 @@ TBD - How CouchDB views are mapped to Mongo indexes
 [7]: https://docs.mongodb.com/manual/reference/operator/update/inc/
 [8]: http://mongodb.github.io/mongo-scala-driver/
 [9]: https://github.com/chetanmeh/openwhisk-mongo/issues/8
+[10]: https://github.com/apache/incubator-openwhisk/blob/master/docs/cli.md
+[11]: https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md
