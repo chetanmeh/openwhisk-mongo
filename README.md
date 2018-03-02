@@ -35,7 +35,9 @@ As its still in development you would need to perform some build steps locally
     docker-compose --project-name openwhisk up
     
     # It would bring up the OpenWhisk setup locally
-    
+    # Now configure default subjects
+    ./gradlew :tools:wskadmin:initdb -Dmongo.uri=mongodb://localhost:27018 -Dmongo.db=openwhisk
+
 This should bring up the OpenWhisk setup with Controller and Invoker configured to use MongoDB
 as storage store. This setup does not have the nginx configured so we need to hit the controller directly
 Change the `~/.wskprops`
