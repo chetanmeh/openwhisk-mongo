@@ -51,10 +51,11 @@ auths.each {File file ->
                 _id : authName,
                 _data : [
                         subject: authName,
-                        namespaces : [
+                        namespaces : [[
                                 name: authName,
                                 uuid : parts[0],
                                 key : parts[1]
+                                ]
                         ]
 
                 ]
