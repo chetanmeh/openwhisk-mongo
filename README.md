@@ -45,7 +45,13 @@ Change the `~/.wskprops`
     
 Further steps assume that `wsk` [CLI is configured on your setup][10]. Now try the steps [here][11] to see OpenWhisk in
 action
-  
+
+### Configuration Properties
+
+To configure Invoker and Controller to use Mongo following environment variables need to be set
+
+* `CONFIG_whisk_mongo_uri` - Mongo URI like _mongodb://server:27017_
+* `CONFIG_whisk_mongo_db` - Database name e.g. _openwhisk_  
 
 ## Storage Model
 
