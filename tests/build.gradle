@@ -3,6 +3,7 @@ plugins {
 }
 
 apply plugin: 'scala'
+apply plugin: 'maven'
 
 dependencies {
     compile "org.apache.openwhisk:openwhisk-tests:${gradle.openwhisk.version}:tests"

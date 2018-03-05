@@ -3,6 +3,7 @@ plugins {
 }
 
 apply plugin: 'scala'
+apply plugin: 'maven'
 project.archivesBaseName = "openwhisk-mongo"
 
 dependencies {
