@@ -35,7 +35,7 @@ import whisk.core.entity.WhiskAuth
 
 import scala.reflect.ClassTag
 
-case class MongoConfig(uri: String, db: String)
+case class MongoConfig(uri: String, db: String, debug: Boolean = false)
 
 object ConfigKeys {
   val mongo = "whisk.mongo"
@@ -77,7 +77,7 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
 
   private def getCountReference = synchronized {
     if (clientRef == null || clientRef.isClosed) {
-      clientRef = new ReferenceCounted[MongoClient](MongoClientHelper.createClient(mongoConfig.uri))
+      clientRef = new ReferenceCounted[MongoClient](MongoClientHelper.createClient(mongoConfig.uri, mongoConfig.debug))
     }
     clientRef.getReference
   }

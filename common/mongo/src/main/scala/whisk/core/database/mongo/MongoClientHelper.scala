@@ -44,8 +44,8 @@ private object MongoClientHelper {
    */
   protected[mongo] def enableTestMode(): Unit = testMode = true
 
-  def createClient(uri: String): MongoClient = {
-    if (testMode) {
+  def createClient(uri: String, debug: Boolean): MongoClient = {
+    if (testMode || debug) {
       val connectionString = new ConnectionString(uri)
       //Taken from MongoClient as it does not allow customizing the CommandListener
       val builder = MongoClientSettings
@@ -65,17 +65,22 @@ private object MongoClientHelper {
   }
 
   object LoggingListener extends CommandListener {
-    override def commandSucceeded(event: CommandSucceededEvent): Unit = {
+    override def commandSucceeded(e: CommandSucceededEvent): Unit = {
       if (log.isTraceEnabled()) {
-        log.trace(s"[${event.getElapsedTime(TimeUnit.MILLISECONDS)}] => ${event.getResponse.toJson}")
+        log.trace(
+          s"[${e.getRequestId}] completed [${e.getElapsedTime(TimeUnit.MILLISECONDS)}] => ${e.getResponse.toJson}")
       }
     }
 
-    override def commandFailed(event: CommandFailedEvent): Unit = {}
-
-    override def commandStarted(event: CommandStartedEvent): Unit = {
+    override def commandFailed(e: CommandFailedEvent): Unit = {
       if (log.isTraceEnabled()) {
-        log.trace(s"[${event.getDatabaseName}] => ${event.getCommand.toJson}")
+        log.trace(s"[${e.getRequestId}] failed [${e.getElapsedTime(TimeUnit.MILLISECONDS)}]", e.getThrowable)
+      }
+    }
+
+    override def commandStarted(e: CommandStartedEvent): Unit = {
+      if (log.isTraceEnabled()) {
+        log.trace(s"[${e.getRequestId}] started [${e.getDatabaseName}] => ${e.getCommand.toJson}")
       }
     }
   }
