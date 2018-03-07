@@ -343,6 +343,10 @@ class MongoDbStore[DocumentAbstraction <: DocumentSerializer](clientRef: Referen
     attachmentStore.readAttachment(doc, name, sink)
   }
 
+  override protected[core] def deleteAttachments[T](doc: DocInfo)(implicit transid: TransactionId): Future[Boolean] = {
+    attachmentStore.deleteAttachments(doc)
+  }
+
   override def shutdown(): Unit = {
     clientRef.close()
   }

@@ -130,7 +130,7 @@ class MongoDbStoreTests extends FlatSpec with ArtifactStoreHelper with MongoSupp
       EntityPath("testnamespace"),
       EntityName("activation1"),
       Subject(),
-      ActivationId(),
+      ActivationId.generate(),
       start = Instant.now,
       end = Instant.now)
     val activationDoc = put(activationStore, activation)

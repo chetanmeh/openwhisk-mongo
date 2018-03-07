@@ -106,6 +106,44 @@ class GridFSAttachmentStoreTests
     os.toByteArray shouldBe bytes2
   }
 
+  it should "add and delete some binary content" in {
+    implicit val tid = transid()
+    val store = createStore()
+    val bytes = randomBytes(4000)
+
+    val info = DocInfo ! (newActionName, "1")
+    val info2 = DocInfo ! (newActionName, "1")
+    val source = StreamConverters.fromInputStream(() => new ByteArrayInputStream(bytes), 42)
+    val wr1 = store.attach(info, "code", ContentTypes.`application/octet-stream`, source)
+    val wr2 = store.attach(info, "code2", ContentTypes.`application/json`, source)
+    val wr3 = store.attach(info2, "code2", ContentTypes.`application/json`, source)
+
+    wr1.futureValue shouldBe info
+    wr2.futureValue shouldBe info
+    wr3.futureValue shouldBe info2
+
+    val os = new ByteArrayOutputStream()
+    val sink = StreamConverters.fromOutputStream(() => os)
+
+    def getAttachmentType(info: DocInfo, name: String) = {
+      store.readAttachment(info, name, StreamConverters.fromOutputStream(() => new ByteArrayOutputStream()))
+    }
+
+    getAttachmentType(info, "code").futureValue._1 shouldBe ContentTypes.`application/octet-stream`
+    getAttachmentType(info, "code2").futureValue._1 shouldBe ContentTypes.`application/json`
+
+    val delf = store.deleteAttachments(info)
+
+    delf.futureValue shouldBe true
+
+    getAttachmentType(info, "code").failed.futureValue shouldBe a[NoDocumentException]
+    getAttachmentType(info, "code2").failed.futureValue shouldBe a[NoDocumentException]
+
+    //Delete should not have deleted other attachments
+    getAttachmentType(info2, "code2").futureValue._1 shouldBe ContentTypes.`application/json`
+
+  }
+
   it should "throw NoDocumentException on reading non existing file" in {
     implicit val tid = transid()
     val store = createStore()

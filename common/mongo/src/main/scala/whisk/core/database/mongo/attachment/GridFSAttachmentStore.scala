@@ -173,6 +173,44 @@ class GridFSAttachmentStore(db: MongoDatabase, namespace: String)(implicit syste
           ErrorLevel))
   }
 
+  override protected[core] def deleteAttachments(doc: DocInfo)(implicit transid: TransactionId): Future[Boolean] = {
+    val start = transid.started(
+      this,
+      LoggingMarkers.DATABASE_ATT_SAVE,
+      s"[ATT_DEL] '$namespace' deleting attachments of document '$doc'")
+
+    require(doc != null, "doc undefined")
+    require(doc.rev.rev != null, "doc revision must be specified")
+
+    val filenameRegex = s"^$namespace/${doc.id.id}/".r
+    def findExisting = gridFS.find(Filters.regex("filename", filenameRegex)).toFuture()
+
+    def delete(files: Seq[GridFSFile]) = {
+      val d = files.map(f => gridFS.delete(f.getId).head())
+      Future.sequence(d)
+    }
+
+    val f = for {
+      files <- findExisting
+      result <- delete(files)
+    } yield true
+
+    f.onSuccess {
+      case _ =>
+        transid
+          .finished(this, start, s"[ATT_DEL] '$namespace' successfully deleted attachments of document '$doc'")
+    }
+
+    reportFailure(
+      f,
+      failure =>
+        transid.failed(
+          this,
+          start,
+          s"[ATT_DEL] '$namespace' internal error, doc: '$doc', failure: '${failure.getMessage}'",
+          ErrorLevel))
+  }
+
   private def getContentType(file: GridFSFile): ContentType = {
     val typeString = file.getMetadata.getString("contentType")
     require(typeString != null, "Did not find 'contentType' in file metadata")

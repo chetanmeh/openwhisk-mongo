@@ -43,4 +43,6 @@ trait AttachmentStore {
    */
   protected[core] def readAttachment[T](doc: DocInfo, name: String, sink: Sink[ByteString, Future[T]])(
     implicit transid: TransactionId): Future[(ContentType, T)]
+
+  protected[core] def deleteAttachments(doc: DocInfo)(implicit transid: TransactionId): Future[Boolean]
 }
