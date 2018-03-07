@@ -1,10 +1,16 @@
 plugins {
     id "org.scoverage" version "2.1.0"
+    id "com.jfrog.bintray" version "1.8.0"
 }
 
 apply plugin: 'scala'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
 project.archivesBaseName = "openwhisk-mongo"
+
+group 'org.github.chetanmeh'
+version '0.0.1'
 
 dependencies {
     compile "org.apache.openwhisk:openwhisk-common:${gradle.openwhisk.version}"
@@ -15,4 +21,33 @@ dependencies {
 
 tasks.withType(ScalaCompile) {
     scalaCompileOptions.additionalParameters = gradle.scala.compileFlags
+}
+
+publishing {
+    publications {
+        mavenScala(MavenPublication) {
+            from components.java
+            groupId group
+            artifactId project.archivesBaseName
+            version version
+        }
+    }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    pkg {
+        repo = 'maven'
+        name = 'openwhisk-mongo'
+        desc = 'Mongo based ArtifactStore implementation for OpenWhisk'
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/chetanmeh/openwhisk-mongo.git'
+        publications = ['mavenScala']
+        version {
+            name = project.version
+            vcsTag = project.version
+            released  = new Date()
+        }
+    }
 }
