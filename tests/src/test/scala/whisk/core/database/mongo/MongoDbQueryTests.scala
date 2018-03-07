@@ -269,7 +269,7 @@ class MongoDbQueryTests extends FlatSpec with ArtifactStoreHelper with MongoSupp
       EntityPath(ns),
       EntityName(actionName),
       Subject(),
-      ActivationId(),
+      ActivationId.generate(),
       Instant.ofEpochMilli(start),
       Instant.ofEpochMilli(start + 1000))
   }
