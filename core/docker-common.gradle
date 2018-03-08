@@ -20,10 +20,7 @@ configurations {
 }
 
 dependencies {
-    docker(project(':common:mongo')){
-        exclude group:"org.apache.openwhisk", module:"openwhisk-common"
-        exclude group:"org.scala-lang"
-    }
+    docker(project(':common:mongo'))
 }
 
 //By default the base image extend from official 'openwhisk' images
