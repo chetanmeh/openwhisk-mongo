@@ -22,7 +22,6 @@ import akka.stream.ActorMaterializer
 import org.mongodb.scala.MongoClient
 import spray.json.RootJsonFormat
 import whisk.common.Logging
-import whisk.core.WhiskConfig
 import whisk.core.database.ArtifactStoreProvider
 import whisk.core.database.ArtifactStore
 import whisk.core.database.DocumentSerializer
@@ -43,11 +42,9 @@ object ConfigKeys {
 
 object MongoDbStoreProvider extends ArtifactStoreProvider {
   private var clientRef: ReferenceCounted[MongoClient] = _
-  private val mongoConfig = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
+  private val config = loadConfigOrThrow[MongoConfig](ConfigKeys.mongo)
 
-  override def makeStore[D <: DocumentSerializer: ClassTag](config: WhiskConfig,
-                                                            name: WhiskConfig => String,
-                                                            useBatching: Boolean)(
+  override def makeStore[D <: DocumentSerializer: ClassTag](useBatching: Boolean)(
     implicit jsonFormat: RootJsonFormat[D],
     docReader: DocumentReader,
     actorSystem: ActorSystem,
@@ -57,14 +54,14 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
     val ref = getCountReference
     val (collectionName, handler, mapper, attachmentStore) = handlerAndMapper(implicitly[ClassTag[D]], ref.get)
 
-    new MongoDbStore[D](ref, mongoConfig, collectionName, handler, mapper, attachmentStore, useBatching)
+    new MongoDbStore[D](ref, config, collectionName, handler, mapper, attachmentStore, useBatching)
   }
 
   private def handlerAndMapper[D](entityType: ClassTag[D], client: MongoClient)(
     implicit actorSystem: ActorSystem,
     logging: Logging,
     materializer: ActorMaterializer): (String, DocumentHandler, MongoViewMapper, AttachmentStore) = {
-    val db = client.getDatabase(mongoConfig.db)
+    val db = client.getDatabase(config.db)
     entityType.runtimeClass match {
       case x if x == classOf[WhiskEntity] =>
         ("whisks", WhisksHandler, WhisksViewMapper, new GridFSAttachmentStore(db, "whisks"))
@@ -77,7 +74,7 @@ object MongoDbStoreProvider extends ArtifactStoreProvider {
 
   private def getCountReference = synchronized {
     if (clientRef == null || clientRef.isClosed) {
-      clientRef = new ReferenceCounted[MongoClient](MongoClientHelper.createClient(mongoConfig.uri, mongoConfig.debug))
+      clientRef = new ReferenceCounted[MongoClient](MongoClientHelper.createClient(config.uri, config.debug))
     }
     clientRef.getReference
   }
