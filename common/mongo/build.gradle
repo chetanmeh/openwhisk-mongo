@@ -10,11 +10,13 @@ apply plugin: 'com.jfrog.bintray'
 project.archivesBaseName = "openwhisk-mongo"
 
 group 'org.github.chetanmeh'
-version '0.0.1'
+version '0.0.2'
 
 dependencies {
-    compile "org.apache.openwhisk:openwhisk-common:${gradle.openwhisk.version}"
-    compile "org.mongodb.scala:mongo-scala-driver_2.11:2.1.0"
+    compileOnly "org.apache.openwhisk:openwhisk-common:${gradle.openwhisk.version}"
+    compile ("org.mongodb.scala:mongo-scala-driver_2.11:2.1.0"){
+        exclude group:"org.scala-lang"
+    }
     scoverage gradle.scoverage.deps
 }
 
