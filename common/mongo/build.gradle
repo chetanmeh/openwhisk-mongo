@@ -10,7 +10,7 @@ apply plugin: 'com.jfrog.bintray'
 project.archivesBaseName = "openwhisk-mongo"
 
 group 'org.github.chetanmeh'
-version '0.0.2'
+version '0.0.3'
 
 dependencies {
     compileOnly "org.apache.openwhisk:openwhisk-common:${gradle.openwhisk.version}"
