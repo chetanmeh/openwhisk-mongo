@@ -54,9 +54,9 @@ trait ArtifactStoreHelper
   val config = new WhiskConfig(
     Map("db.whisk.auths" -> "auths", "db.whisk.actions" -> "whisks", "db.whisk.activations" -> "activations"))
 
-  lazy val authStore = WhiskAuthStore.datastore(config)
-  lazy val entityStore = WhiskEntityStore.datastore(config)
-  lazy val activationStore = WhiskActivationStore.datastore(config)
+  lazy val authStore = WhiskAuthStore.datastore()
+  lazy val entityStore = WhiskEntityStore.datastore()
+  lazy val activationStore = WhiskActivationStore.datastore()
 
   val rawDocsToDelete = ListBuffer[(String, String)]() //id -> db
 
